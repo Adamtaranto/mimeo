@@ -2,12 +2,13 @@
 import mimeo
 import argparse
 import os
+import shutil
 
 def mainArgs():
 	parser = argparse.ArgumentParser(description='Cross-species repeat finder. Mimeo-x searches for features which are abundant in an external reference genome.',prog='mimeo-x')
 	# Input options
-	parser.add_argument('--adir',type=str,default='A_genome_split',help='Name of directory containing sequences from A genome.')
-	parser.add_argument('--bdir',type=str,default='B_genome_split',help='Name of directory containing sequences from B genome.')
+	parser.add_argument('--adir',type=str,default=None,help='Name of directory containing sequences from A genome.')
+	parser.add_argument('--bdir',type=str,default=None,help='Name of directory containing sequences from B genome.')
 	parser.add_argument('--afasta',type=str,default=None,help='A genome as multifasta.')
 	parser.add_argument('--bfasta',type=str,default=None,help='B genome as multifasta.')
 	parser.add_argument('-r','--recycle',action="store_true",help='Use existing alignment "--outfile" if found.')
@@ -41,7 +42,7 @@ def main():
 			  ', '.join(missing_tools))
 		print('You may need to install them to use all features.')
 	# Set output paths
-	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outdir,outtab=args.outfile,gffout=args.gffout)
+	adir_path,bdir_path,outdir,outtab,gffout,tempdir = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outdir,outtab=args.outfile,gffout=args.gffout)
 	# Get file names to align
 	pairs = mimeo.get_all_pairs(Adir=adir_path,Bdir=bdir_path)
 	# Get A-genome chromosome lengths for coverage calcs
@@ -52,4 +53,6 @@ def main():
 	cmds = mimeo.xspecies_LZ_cmds(lzpath=args.lzpath, bdtlsPath=args.bedtools, pairs=pairs, Adir=adir_path, Bdir=bdir_path, outtab=outtab, outgff=gffout, minIdt=args.minIdt , minLen=args.minLen , minCov=args.minCov , AchrmLens=lenPathA, reuseTab=args.recycle, label=args.label, prefix=args.prefix)
 	# Run alignments
 	mimeo.run_cmd(cmds,verbose=args.verbose)
+	if tempdir and os.path.isdir(tempdir):
+		shutil.rmtree(tempdir)
 	print("Finished!")

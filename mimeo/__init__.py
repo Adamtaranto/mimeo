@@ -8,6 +8,7 @@ import subprocess
 import pandas as pd
 from Bio import SeqIO
 from collections import Counter
+from datetime import datetime
 
 class Error (Exception): pass
 
@@ -30,9 +31,18 @@ def import_pairs(file=None,Adir=None,Bdir=None):
 
 def get_all_pairs(Adir=None,Bdir=None):
 	pairs = list()
-	for A in glob.glob(os.path.join(Adir,'*')):
-		for B in glob.glob(os.path.join(Bdir,'*')):
-			pairs.append((A,B))
+	if Adir and Bdir:
+		for A in glob.glob(os.path.join(Adir,'*')):
+			for B in glob.glob(os.path.join(Bdir,'*')):
+				pairs.append((A,B))
+	elif Adir:
+		print('Compose self-genome alignment pairs.')
+		for A in glob.glob(os.path.join(Adir,'*')):
+			for B in glob.glob(os.path.join(Adir,'*')):
+				pairs.append((A,B))
+	else:
+		print('Need at least one seq directory to compose alignment pairs.')
+		sys.exit(1)
 	return pairs
 
 def _write_script(cmds,script):
@@ -68,6 +78,95 @@ def run_cmd(cmds,verbose=False):
 	os.chdir(original_dir)
 	shutil.rmtree(tmpdir)
 
+def getTimestring():
+	"""Return int only string of current datetime with milliseconds."""
+	(dt, micro) = datetime.utcnow().strftime('%Y%m%d%H%M%S.%f').split('.')
+	dt = "%s%03d" % (dt, int(micro) / 1000)
+	return dt
+
+def	splitFasta(infile,outdir,unique=True):
+	seen = list()
+	for rec in SeqIO.parse(infile, "fasta"):
+		if str(rec.id) in seen and unique:
+			print("Non-unique name in genome: %s. Quitting." % str(rec.id))
+			sys.exit(1)
+		else:
+			seen.append(str(rec.id))
+		outfile	= os.path.join(outdir, rec.id + ".fa")
+		with open(outfile, "w") as handle:
+			SeqIO.write(rec, handle, "fasta")
+
+def isfile(path):
+	path = os.path.abspath(path)
+	if not os.path.isfile(path):
+		print("Input file not found: %s" % path)
+		sys.exit(1)
+	else:
+		return path
+
+def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=None,gffout=None,suppresBdir=False):
+	if not adir:
+		# Make temp directory
+		tempdir = os.path.join(os.getcwd(),"temp_" + getTimestring())
+		os.makedirs(tempdir)
+	elif not bdir and not suppresBdir:
+		# Make temp directory
+		tempdir = os.path.join(os.getcwd(),"temp_" + getTimestring())
+		os.makedirs(tempdir)
+	else:
+		tempdir = None
+	# Check that A/B genome directories exist
+	if adir:
+		adir = os.path.abspath(adir)
+		if not os.path.isdir(adir):
+			print('Creating Adir: %s' % adir)
+			os.makedirs(adir)
+			if not afasta:
+				print('No A-genome fasta file provided. Quitting.')
+				sys.exit(1)
+	else:
+		adir = os.path.join(tempdir,'A_genome_split')
+		os.makedirs(adir)
+	if bdir:
+		bdir = os.path.abspath(bdir)
+		if not os.path.isdir(bdir):
+			print('Creating Bdir: %s' % bdir)
+			os.makedirs(bdir)
+			if not bfasta:
+				print('No B-genome fasta file provided. Quitting.')
+				sys.exit(1)
+	elif not suppresBdir:
+		bdir = os.path.join(tempdir,'B_genome_split')
+		os.makedirs(bdir)
+	# Split genomes if given
+	if afasta:
+		if os.path.isfile(afasta):
+			splitFasta(afasta,adir)
+		else:
+			print('A-genome fasta not found at path: ' % afasta)
+	if bfasta:
+		if os.path.isfile(bfasta):
+			splitFasta(bfasta,bdir)
+		elif not suppresBdir:
+			print('B-genome fasta not found at path: ' % bfasta)
+	# Set outdir
+	if outdir:
+		outdir = os.path.abspath(outdir)
+		if not os.path.isdir(outdir):
+			print('Create output directory: %s' % outdir)
+			os.makedirs(outdir)
+	else:
+		outdir = os.getcwd()
+	# Compose path to outfile
+	if outtab: 
+		outtab = os.path.join(outdir,outtab)
+		if os.path.isfile(outtab):
+			print('Previous alignment found: %s' % outtab)
+	if gffout: 
+		gffout = os.path.join(outdir,gffout)
+	# Return paths
+	return adir,bdir,outdir,outtab,gffout,tempdir
+
 def checkUniqueID(records):
 	"""Check that IDs for input elements are unique."""
 	seqIDs = [records[x].id for x in range(len(records))]
@@ -96,7 +195,7 @@ def chromlens(seqDir=None,outfile=None):
 	for rec in records:
 		chrlens.append((str(rec.id),str(len(rec.seq))))
 	#Sort list
-	chrlens = chrlens.sort(key=lambda x: x[0])
+	chrlens.sort(key=lambda x: x[0])
 	if outfile:
 		with open(outfile, 'w') as handle:
 			for x,y in chrlens:
@@ -109,26 +208,6 @@ def missing_tool(tool_name):
 		return [tool_name]
 	else:
 		return []
-
-def	splitFasta(infile,outdir,unique=True):
-	seen = list()
-	for rec in SeqIO.parse(infile, "fasta"):
-		if str(rec.id) in seen and unique:
-			print("Non-unique name in genome: %s. Quitting." % str(rec.id))
-			sys.exit(1)
-		else:
-			seen.append(str(rec.id))
-		outfile	= os.path.join(outdir, rec.id + ".fa")
-		with open(outfile, "w") as handle:
-			SeqIO.write(rec, handle, "fasta")
-
-def isfile(path):
-	path = os.path.abspath(path)
-	if not os.path.isfile(path):
-		print("Input file not found: %s" % path)
-		sys.exit(1)
-	else:
-		return path
 
 def import_Align(infile=None,prefix=None,minLen=100,minIdt=95):
 	''' Import LASTZ alignment file to pandas dataframe '''
@@ -333,32 +412,3 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 		cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed_intra,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"label"+"_intra"+"\",$2,$3,\".\",\"+\",\".\",\"ID=" + prefix + "_IntraSeqRep_\"j ;}' >>", outgff]))
 	# Return cmds list
 	return cmds
-
-def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=None,gffout=None):
-	# Check that A/B genome directories exist
-	if adir:
-		adir = os.path.abspath(adir)
-		if not os.path.isdir(adir):
-			os.makedirs(adir)
-	if bdir:
-		bdir = os.path.abspath(bdir)
-		if not os.path.isdir(bdir):
-			os.makedirs(bdir)
-	# Split genomes if given
-	if afasta:
-		splitFasta(afasta,adir)
-	if bfasta:
-		splitFasta(bfasta,bdir)
-	# Set outdir
-	if outdir:
-		outdir = os.path.abspath(outdir)
-		if not os.path.isdir(outdir):
-			os.makedirs(outdir)
-	else:
-		outdir = os.getcwd()
-	# Compose path to outfile
-	if outtab: 
-		outtab = os.path.join(outdir,outtab)
-	if gffout: 
-		gffout = os.path.join(outdir,gffout)
-	return adir,bdir,outdir,outtab,gffout
