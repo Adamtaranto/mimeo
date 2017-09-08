@@ -14,7 +14,7 @@
 
 # Modules
 
-Mimeo comprises three tools for processing whole-genome alignments:
+Mimeo comprises three tools for parsing repeats from whole-genome alignments:
 
 ## mimeo-self  
 
