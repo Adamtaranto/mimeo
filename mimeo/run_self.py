@@ -15,8 +15,9 @@ def mainArgs():
 	parser.add_argument('--gffout',type=str,default="mimeo-self_repeats.gff3",help='Name of GFF3 annotation file.')
 	parser.add_argument('--outfile',type=str,default="mimeo_alignment.tab",help='Name of alignment result file.')
 	parser.add_argument('--verbose',action="store_true",default=False,help='If set report LASTZ progress.')
-	parser.add_argument('--label',type=str,default="Self_Repeats",help='Set annotation TYPE field in gff.')
+	parser.add_argument('--label',type=str,default="Self_Repeat",help='Set annotation TYPE field in gff.')
 	parser.add_argument('--prefix',type=str,default="Self_Repeat",help='ID prefix for internal repeats.')
+	parser.add_argument('--keeptemp',action="store_true",default=False,help='If set do not remove temp files.')
 	# LASTZ options
 	parser.add_argument('--lzpath',type=str,default="lastz",help='Custom path to LASTZ executable if not in $PATH.')
 	parser.add_argument('--bedtools',type=str,default="bedtools",help='Custom path to bedtools executable if not in $PATH.')
@@ -49,10 +50,10 @@ def main():
 	lenPathA = os.path.join(outdir,'A_gen_lens.txt')
 	chrLensA = mimeo.chromlens(seqDir=adir_path,outfile=lenPathA)
 	# Compose alignment commands
-	cmds = mimeo.self_LZ_cmds(lzpath=args.lzpath, bdtlsPath=args.bedtools, pairs=pairs, Adir=adir_path, Bdir=bdir_path, outtab=outtab, outgff=gffout, minIdt=args.minIdt , minLen=args.minLen , hspthresh=args.hspthresh, minCov=args.minCov,intraCov=args.intraCov, AchrmLens=lenPathA, reuseTab=args.recycle, label=args.label, prefix=args.prefix)
+	cmds = mimeo.self_LZ_cmds(lzpath=args.lzpath, bdtlsPath=args.bedtools, pairs=pairs, Adir=adir_path, Bdir=bdir_path, outtab=outtab, outgff=gffout, minIdt=args.minIdt , minLen=args.minLen , hspthresh=args.hspthresh, minCov=args.minCov,intraCov=args.intraCov,splitSelf=args.strictSelf, AchrmLens=lenPathA, reuseTab=args.recycle, label=args.label, prefix=args.prefix)
 	# Run alignments
 	print('Running alignments...')
-	mimeo.run_cmd(cmds,verbose=args.verbose)
-	if tempdir and os.path.isdir(tempdir):
+	mimeo.run_cmd(cmds,verbose=args.verbose,keeptemp=args.keeptemp)
+	if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
 		shutil.rmtree(tempdir)
 	print("Finished!")

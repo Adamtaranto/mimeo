@@ -67,7 +67,7 @@ def syscall(cmd, verbose=False):
 	if verbose:
 		print(decode(output))
 
-def run_cmd(cmds,verbose=False):
+def run_cmd(cmds,verbose=False,keeptemp=False):
 	'''Write and excute HMMER script'''
 	tmpdir = tempfile.mkdtemp(prefix='tmp.', dir=os.getcwd())
 	original_dir = os.getcwd()
@@ -76,7 +76,8 @@ def run_cmd(cmds,verbose=False):
 	_write_script(cmds,script)
 	syscall('bash ' + script, verbose=verbose)
 	os.chdir(original_dir)
-	shutil.rmtree(tmpdir)
+	if not keeptemp:
+		shutil.rmtree(tmpdir)
 
 def getTimestring():
 	"""Return int only string of current datetime with milliseconds."""
@@ -143,12 +144,12 @@ def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=Non
 		if os.path.isfile(afasta):
 			splitFasta(afasta,adir)
 		else:
-			print('A-genome fasta not found at path: ' % afasta)
+			print('A-genome fasta not found at path: %s' % afasta)
 	if bfasta:
 		if os.path.isfile(bfasta):
 			splitFasta(bfasta,bdir)
 		elif not suppresBdir:
-			print('B-genome fasta not found at path: ' % bfasta)
+			print('B-genome fasta not found at path: %s' % bfasta)
 	# Set outdir
 	if outdir:
 		outdir = os.path.abspath(outdir)
@@ -240,11 +241,12 @@ def import_Align(infile=None,prefix=None,minLen=100,minIdt=95):
 	df = df.sort_values(['tName','tStart','tEnd','tStrand'], ascending=[True,True,True,True])
 	# Reindex
 	df = df.reset_index(drop=True)
-	fillLen = len(df.index)
+	df.index = df.index + 1
+	fillLen = len(str(len(df.index)))
 	if prefix:
-		df['UID'] = str(prefix) + '_' + df.index.astype(str).zfill(fillLen)
+		df['UID'] = str(prefix) + '_' + df.index.astype(str).str.zfill(fillLen)
 	else:
-		df['UID'] = 'BHit_' + df.index.astype(str).zfill(fillLen)
+		df['UID'] = 'BHit_' + df.index.astype(str).str.zfill(fillLen)
 	return df
 
 def writeGFFlines(alnDF=None,chrlens=None,ftype='BHit'):
@@ -279,7 +281,7 @@ def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,o
 		## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 		## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 		## Sort filtered file by chrom, start, stop
-		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outfile]))
+		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outfile]))
 	return cmds
 
 def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 ,hspthresh=3000, minCov=5 , AchrmLens=None, reuseTab=False, label="B_repeats",prefix=None,verbose=False):
@@ -305,12 +307,13 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 			## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 			## Sort filtered file by chrom, start, stop
-			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
 	# Set temp output files
 	temp_bed = "temp.bed"
 	temp_bed_sorted = "temp_sorted.bed"
 	## Port filtered hits to bed format: "name1,start1,end1"
-	cmds.append(' '.join(["awk '!/^#/ {print $1,'\\t',$3,'\\t',$4;}'",outtab,">",temp_bed]))
+	#cmds.append(' '.join(["echo 'Port filtered hits to bed format: name1,start1,end1' >&2"]))
+	cmds.append(' '.join(["awk -v OFS='\\t' '!/^#/ {print $1,$3,$4;}'",outtab,">",temp_bed]))
 	## Remove spaces
 	cmds.append(' '.join(["sed -i '' -e 's/ //g'",temp_bed]))
 	## Sort filtered bed file by chrom, start, stop
@@ -324,16 +327,18 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 	# Write GFF header
 	cmds.append(' '.join(["echo $'##gff-version 3\\n#seqid\\tsource\\ttype\\tstart\\tend\\tscore\\tstrand\\tphase\\tattributes' >", outgff]))
 	## Filter orphan fragments < xx && Create GFF3 file
-	cmds.append(' '.join(["awk -v minLen="+ str(minLen),"'{ if($3 - $2 >= minLen) print ;}' temp_bed | awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,'mimeo','" + str(label) + "',$2,$3,\".\",\"+\",\".\",\"ID=InterSpRep_\"j ;}' >>",outgff]))
+	cmds.append(' '.join(["awk -v minLen="+ str(minLen),"'{ if($3 - $2 >= minLen) print ;}'",temp_bed,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>",outgff]))
 	return cmds
 
-def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 , hspthresh=3000, minCov=3, intraCov=5, AchrmLens=None, reuseTab=False, label="B_repeats",prefix=None,verbose=False):
+def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 , hspthresh=3000, minCov=3, intraCov=5, AchrmLens=None, reuseTab=False, label="Self_repeats",prefix=None,verbose=False):
 	''' Align genome to itself. Opt: Process intra-chrom alignments separately to avoid local SSRs. '''
 	if verbose:
 		verb = 1
 	else:
 		verb = 0
 	cmds = list()
+	if splitSelf:
+			outtab_intra = outtab + "_intra.tab" 
 	if not reuseTab or not os.path.isfile(outtab):
 		# Write alignment out file headers
 		cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab]))
@@ -355,7 +360,7 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
-				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
 			else:
 				# Align to self with diff settings
 				t_file=A
@@ -370,13 +375,13 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
-				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
 	# Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode) 
 	# Set temp output files
 	temp_bed = "temp.bed"
 	temp_bed_sorted = "temp_sorted.bed"
 	## Port filtered hits to bed format: "name1,start1,end1"
-	cmds.append(' '.join(["awk '!/^#/ {print $1,\"\\t\",$3,\"\\t\",$4;}' outtab >", temp_bed]))
+	cmds.append(' '.join(["awk -v OFS='\\t' '!/^#/ {print $1,$3,$4;}'",outtab,">",temp_bed]))
 	## Remove spaces
 	cmds.append(' '.join(["sed -i '' -e 's/ //g'", temp_bed]))
 	## Sort filtered bed file by chrom, start, stop
@@ -390,25 +395,28 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 	# Initialise coverage GFF file
 	cmds.append(' '.join(["echo $'##gff-version 3\n#seqid\tsource\ttype\tstart\tend\tscore\tstrand\tphase\tattributes' >", outgff]))
 	## Filter orphan fragments < xx && Create GFF3 file
-	cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed, "| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"label\",$2,$3,\".\",\"+\",\".\",\"ID=" + prefix + "_InterSeqRep_\"j ;}' >>", outgff]))
+	cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed, "| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", outgff]))
 	# Coverage filtering for WITHIN chromosome hits
 	if splitSelf:
-		temp_bed_intra = "temp.bed"
-		temp_bed_sorted_intra = "temp_sorted.bed"
-		## Port filtered hits to bed format: "name1,start1,end1"
-		cmds.append(' '.join(["awk '!/^#/ {print $1,\"\\t\",$3,\"\\t\",$4;}'",outtab_intra,">",temp_bed_intra]))
-		## Remove spaces
-		cmds.append(' '.join(["sed -i '' -e 's/ //g'", temp_bed_intra]))
-		## Sort filtered bed file by chrom, start, stop
-		cmds.append(' '.join(["sort -k 1,1 -k 2n,3n", temp_bed_intra, ">", temp_bed_sorted_intra]))
-		## Generate non-zero coverage scores for target genome regions, filter for min coverage of x
-		# Note: Recycling $temp_bed_intra
-		cmds.append(' '.join([bdtlsPath, "genomecov -bg -i", temp_bed_sorted_intra,"-g",AchrmLens,"| awk -v OFS='\\t' -v cov=" + str(intraCov),"'0+$4 >= cov {print ;}' >", temp_bed_intra]))
-		## Re-sort
-		cmds.append(' '.join(["sort -k 1,1 -k 2n,3n", temp_bed_intra, ">", temp_bed_sorted_intra]))
-		## Merge end-to-end annotations
-		cmds.append(' '.join([bdtlsPath, "merge -i", temp_bed_sorted_intra, ">", temp_bed_intra]))
-		## Filter orphan fragments < xx && Create GFF3 file
-		cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed_intra,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"label"+"_intra"+"\",$2,$3,\".\",\"+\",\".\",\"ID=" + prefix + "_IntraSeqRep_\"j ;}' >>", outgff]))
+		if reuseTab and not os.path.isfile(outtab_intra) and os.path.isfile(outtab):
+			print("Warning: Could not find intra-chrom results file: %s \nRe-run in '--strictSelf' mode if required." % outtab_intra)
+		else:
+			temp_bed_intra = "temp.bed"
+			temp_bed_sorted_intra = "temp_sorted.bed"
+			## Port filtered hits to bed format: "name1,start1,end1"
+			cmds.append(' '.join(["awk -v OFS='\\t' '!/^#/ {print $1,$3,$4;}'",outtab_intra,">",temp_bed_intra]))
+			## Remove spaces
+			cmds.append(' '.join(["sed -i '' -e 's/ //g'", temp_bed_intra]))
+			## Sort filtered bed file by chrom, start, stop
+			cmds.append(' '.join(["sort -k 1,1 -k 2n,3n", temp_bed_intra, ">", temp_bed_sorted_intra]))
+			## Generate non-zero coverage scores for target genome regions, filter for min coverage of x
+			# Note: Recycling $temp_bed_intra
+			cmds.append(' '.join([bdtlsPath, "genomecov -bg -i", temp_bed_sorted_intra,"-g",AchrmLens,"| awk -v OFS='\\t' -v cov=" + str(intraCov),"'0+$4 >= cov {print ;}' >", temp_bed_intra]))
+			## Re-sort
+			cmds.append(' '.join(["sort -k 1,1 -k 2n,3n", temp_bed_intra, ">", temp_bed_sorted_intra]))
+			## Merge end-to-end annotations
+			cmds.append(' '.join([bdtlsPath, "merge -i", temp_bed_sorted_intra, ">", temp_bed_intra]))
+			## Filter orphan fragments < xx && Create GFF3 file
+			cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed_intra,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "_intra" + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", outgff]))
 	# Return cmds list
 	return cmds

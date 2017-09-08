@@ -17,8 +17,9 @@ def mainArgs():
 	parser.add_argument('--gffout',type=str,default="mimeo_B_in_A.gff3",help='Name of GFF3 annotation file.')
 	parser.add_argument('--outfile',type=str,default="mimeo_alignment.tab",help='Name of alignment result file.')
 	parser.add_argument('--verbose',action="store_true",default=False,help='If set report LASTZ progress.')
-	parser.add_argument('--label',type=str,default="BHits",help='Set annotation TYPE field in gff.')
-	parser.add_argument('--prefix',type=str,default="BHit",help='ID prefix for B-genome repeats annotated in A-genome.')
+	parser.add_argument('--label',type=str,default="B_Repeat",help='Set annotation TYPE field in gff.')
+	parser.add_argument('--prefix',type=str,default="B_Repeat",help='ID prefix for B-genome repeats annotated in A-genome.')
+	parser.add_argument('--keeptemp',action="store_true",default=False,help='If set do not remove temp files.')
 	# LASTZ options
 	parser.add_argument('--lzpath',type=str,default="lastz",help='Custom path to LASTZ executable if not in $PATH.')
 	parser.add_argument('--bedtools',type=str,default="bedtools",help='Custom path to bedtools executable if not in $PATH.')
@@ -52,7 +53,7 @@ def main():
 	# Compose alignment commands
 	cmds = mimeo.xspecies_LZ_cmds(lzpath=args.lzpath, bdtlsPath=args.bedtools, pairs=pairs, Adir=adir_path, Bdir=bdir_path, outtab=outtab, outgff=gffout, minIdt=args.minIdt , minLen=args.minLen , minCov=args.minCov , AchrmLens=lenPathA, reuseTab=args.recycle, label=args.label, prefix=args.prefix)
 	# Run alignments
-	mimeo.run_cmd(cmds,verbose=args.verbose)
-	if tempdir and os.path.isdir(tempdir):
+	mimeo.run_cmd(cmds,verbose=args.verbose,keeptemp=args.keeptemp)
+	if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
 		shutil.rmtree(tempdir)
 	print("Finished!")
