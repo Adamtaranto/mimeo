@@ -2,6 +2,7 @@
 import mimeo
 import argparse
 import os
+import sys
 
 def mainArgs():
 	parser = argparse.ArgumentParser(description='Find all high-identity segments shared between genomes.',
@@ -40,15 +41,18 @@ def main():
 			  ', '.join(missing_tools))
 		print('You may need to install them to use all features.')
 	# Set output paths
-	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outfile,outtab=args.outtab,gffout=args.gffout)
+	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outdir,outtab=args.outfile,gffout=args.gffout)
 	# Get all B to A alignment pairs
 	pairs =  mimeo.get_all_pairs(Adir=adir_path,Bdir=bdir_path)
 	# Get chrm lens for GFF header
 	chrLens = mimeo.chromlens(seqDir=adir_path)
 	# Do not realign if outtab exists AND recycle mode is set
 	if not args.recycle or not os.path.isfile(outtab):
+		if not pairs:
+			print("No files to align. Check --adir and --bdir contain at least one fasta each.")
+			sys.exit(1)
 		# Compose alignment commands
-		cmds = mimeo.map_LZ_cmds(lzpath=args.lzpath,pairs=pairs,minIdt=args.minIdt,minLen=args.minLen,hspthresh=args.hspthresh,outfile=outtab,verbose=args.verbose,reuseTab=args.recycle)
+		cmds = mimeo.map_LZ_cmds(lzpath=args.lzpath,pairs=pairs,minIdt=args.minIdt,minLen=args.minLen,hspthresh=args.hspthresh,outfile=outtab,verbose=args.verbose)
 		# Run alignments
 		mimeo.run_cmd(cmds,verbose=args.verbose)
 	#Import alignment as df
@@ -58,5 +62,3 @@ def main():
 		for x in mimeo.writeGFFlines(alnDF=alignments,chrlens=chrLens,ftype=args.label):
 			f.write(x)
 	print("Finished!")
-
-

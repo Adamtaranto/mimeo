@@ -83,8 +83,12 @@ def checkUniqueID(records):
 def chromlens(seqDir=None,outfile=None):
 	''' Get chrom lens from fasta dir '''
 	records = list()
-	for f in glob.glob(seqDir):
+	for f in glob.glob(os.path.join(seqDir,"*")):
 		records += list(SeqIO.parse(f, "fasta"))
+	#Check records exist
+	if not records:
+		print("No sequences found in %s \n Cannot calculate seq lengths." % seqDir)
+		sys.exit(1)
 	# Check names are unique
 	checkUniqueID(records)
 	# Make list
@@ -147,6 +151,10 @@ def import_Align(infile=None,prefix=None,minLen=100,minIdt=95):
 						'score':li[8],
 						'pID':li[9],
 						'UID':None})
+	# Die if no hits
+	if not hits:
+		print("No alignments found in %s" % infile)
+		sys.exit(1)
 	# Convert list of dicts into dataframe
 	df = pd.DataFrame(hits)
 	# Sort hits by Chromosome, location, and strand

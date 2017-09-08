@@ -41,7 +41,7 @@ def main():
 			  ', '.join(missing_tools))
 		print('You may need to install them to use all features.')
 	# Set output paths
-	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outfile,outtab=args.outtab,gffout=args.gffout)
+	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outdir,outtab=args.outfile,gffout=args.gffout)
 	# Get file names to align
 	pairs = mimeo.get_all_pairs(Adir=adir_path,Bdir=bdir_path)
 	# Get A-genome chromosome lengths for coverage calcs
