@@ -4,7 +4,7 @@ import argparse
 import os
 
 def mainArgs():
-	parser = argparse.ArgumentParser(description='',prog='')
+	parser = argparse.ArgumentParser(description='Internal repeat finder. Mimeo-self aligns a genome to itself and extracts high-identity segments above an coverage threshold.',prog='mimeo-self')
 	# Input options
 	parser.add_argument('--adir',type=str,default='A_genome_split',help='Name of directory containing sequences from genome. Write split files here if providing genome as multifasta.')
 	parser.add_argument('--afasta',type=str,default=None,help='Genome as multifasta.')
@@ -29,10 +29,8 @@ def mainArgs():
 	return args
 
 def main():
-	'''Do the work.'''
 	# Get cmd line args
 	args = mainArgs()
-
 	# Check for required programs.
 	tools = [args.lzpath,args.bedtools]
 	missing_tools = []
@@ -42,21 +40,15 @@ def main():
 	    print('WARNING: Some tools required by mimeo could not be found: ' +
 	          ', '.join(missing_tools))
 	    print('You may need to install them to use all features.')
-
 	# Set output paths
 	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,afasta=args.afasta,outdir=args.outdir,outtab=args.outfile,gffout=args.gffout)
-
 	# Get file names to align
 	pairs = mimeo.get_all_pairs(Adir=adir_path,Bdir=bdir_path)
-
 	# Get A-genome chromosome lengths for coverage calcs
 	lenPathA = os.path.join(outdir,'A_gen_lens.txt')
 	chrLensA = mimeo.chromlens(seqDir=adir_path,outfile=lenPathA)
-
 	# Compose alignment commands
 	cmds = mimeo.xspecies_LZ_cmds(lzpath=args.lzpath, bdtlsPath=args.bedtools, pairs=pairs, Adir=adir_path, Bdir=bdir_path, outtab=outtab, outgff=gffout, minIdt=args.minIdt , minLen=args.minLen , hspthresh=args.hspthresh, minCov=args.minCov,intraCov=args.intraCov, AchrmLens=lenPathA, reuseTab=args.recycle, label=args.label, prefix=args.prefix)
 	# Run alignments
 	mimeo.run_cmd(cmds,verbose=args.verbose)
 	print("Finished!")
-
-

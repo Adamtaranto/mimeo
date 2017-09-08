@@ -35,7 +35,6 @@ def get_all_pairs(Adir=None,Bdir=None):
 			pairs.append((A,B))
 	return pairs
 
-
 def _write_script(cmds,script):
 	'''Write commands into a bash script'''
 	f = open(script, 'w+')
@@ -69,7 +68,6 @@ def run_cmd(cmds,verbose=False):
 	os.chdir(original_dir)
 	shutil.rmtree(tmpdir)
 
-
 def checkUniqueID(records):
 	"""Check that IDs for input elements are unique."""
 	seqIDs = [records[x].id for x in range(len(records))]
@@ -100,7 +98,6 @@ def chromlens(seqDir=None,outfile=None):
 			for x,y in chrlens:
 				handle.write('\t'.join([x,y]) + '\n')
 	return chrlens
-
 
 def missing_tool(tool_name):
 	path = shutil.which(tool_name)
@@ -173,7 +170,6 @@ def writeGFFlines(alnDF=None,chrlens=None,ftype='BHit'):
 		attributes = ';'.join(['ID=' +row['UID'],'identity=' + str(row['pID']),'Source=' + row['qName'] + '_' + row['qStrand'] + '_' + str(row['qStart']) + '_' + str(row['qEnd'])])
 		yield '\t'.join([row['tName'],'mimeo-map',ftype,str(row['tStart']),str(row['tEnd']),str(row['score']),row['tStrand'],'.',attributes + '\n'])
 
-
 def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,outfile=None,verbose=False):
 	''' Map high identity B segments onto genome A (i.e. candidate HGT regions). Report as GFF. '''
 	if verbose:
@@ -199,29 +195,30 @@ def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,o
 		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outfile]))
 	return cmds
 
-def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 ,hspthresh=3000, minCov=5 , AchrmLens=None, reuseTab=False, label="B_repeats",prefix=args.prefix,verbose=False):
+def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 ,hspthresh=3000, minCov=5 , AchrmLens=None, reuseTab=False, label="B_repeats",prefix=None,verbose=False):
 	'''Screen genome A (target) for features which are high copy in genome B (query).'''
 	if verbose:
 		verb = 1
 	else:
 		verb = 0
 	cmds = list()
-	cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", outtab]))
-	# loop writing B to A mapping cmds
-	for A,B in pairs:
-		t_file=A
-		t_name=os.path.splitext(os.path.basename(A))[0]
-		q_file=B
-		q_name=os.path.splitext(os.path.basename(B))[0]
-		temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
-		# Compose LASTZ command
-		cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
-		# Scrub % symbols
-		cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
-		## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
-		## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
-		## Sort filtered file by chrom, start, stop
-		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+	if not reuseTab or not os.path.isfile(outtab):
+		cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", outtab]))
+		# loop writing B to A mapping cmds
+		for A,B in pairs:
+			t_file=A
+			t_name=os.path.splitext(os.path.basename(A))[0]
+			q_file=B
+			q_name=os.path.splitext(os.path.basename(B))[0]
+			temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
+			# Compose LASTZ command
+			cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+			# Scrub % symbols
+			cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
+			## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
+			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
+			## Sort filtered file by chrom, start, stop
+			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
 	# Set temp output files
 	temp_bed = "temp.bed"
 	temp_bed_sorted = "temp_sorted.bed"
@@ -250,42 +247,43 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 	else:
 		verb = 0
 	cmds = list()
-	# Write alignment out file headers
-	cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab]))
-	if splitSelf:
-		outtab_intra = outtab + "_intra.tab" 
-		cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab_intra]))
-	# loop writing B to A mapping cmds
-	for A,B in pairs:
-		if A != B or not splitSelf: 
-			t_file=A
-			t_name=os.path.splitext(os.path.basename(A))[0]
-			q_file=B
-			q_name=os.path.splitext(os.path.basename(B))[0]
-			temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
-			# Compose LASTZ command
-			cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
-			# Scrub % symbols
-			cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
-			## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
-			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
-			## Sort filtered file by chrom, start, stop
-			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
-		else:
-			# Align to self with diff settings
-			t_file=A
-			t_name=os.path.splitext(os.path.basename(A))[0]
-			q_file=B
-			q_name=os.path.splitext(os.path.basename(B))[0]
-			temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
-			# Compose LASTZ command
-			cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
-			# Scrub % symbols
-			cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
-			## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
-			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
-			## Sort filtered file by chrom, start, stop
-			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
+	if not reuseTab or not os.path.isfile(outtab):
+		# Write alignment out file headers
+		cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab]))
+		if splitSelf:
+			outtab_intra = outtab + "_intra.tab" 
+			cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab_intra]))
+		# loop writing B to A mapping cmds
+		for A,B in pairs:
+			if A != B or not splitSelf: 
+				t_file=A
+				t_name=os.path.splitext(os.path.basename(A))[0]
+				q_file=B
+				q_name=os.path.splitext(os.path.basename(B))[0]
+				temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
+				# Compose LASTZ command
+				cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+				# Scrub % symbols
+				cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
+				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
+				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
+				## Sort filtered file by chrom, start, stop
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+			else:
+				# Align to self with diff settings
+				t_file=A
+				t_name=os.path.splitext(os.path.basename(A))[0]
+				q_file=B
+				q_name=os.path.splitext(os.path.basename(B))[0]
+				temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
+				# Compose LASTZ command
+				cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+				# Scrub % symbols
+				cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
+				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
+				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
+				## Sort filtered file by chrom, start, stop
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS=" + "'\\t'", "-v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
 	# Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode) 
 	# Set temp output files
 	temp_bed = "temp.bed"
@@ -356,6 +354,3 @@ def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=Non
 	if gffout: 
 		gffout = os.path.join(outdir,gffout)
 	return adir,bdir,outdir,outtab,gffout
-
-
-

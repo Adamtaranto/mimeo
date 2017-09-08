@@ -4,7 +4,8 @@ import argparse
 import os
 
 def mainArgs():
-	parser = argparse.ArgumentParser(description='',prog='')
+	parser = argparse.ArgumentParser(description='Find all high-identity segments shared between genomes.',
+									 prog='mimeo-map')
 	# Input options
 	parser.add_argument('--adir',type=str,default='A_genome_split',help='Name of directory containing sequences from A genome.')
 	parser.add_argument('--bdir',type=str,default='B_genome_split',help='Name of directory containing sequences from B genome.')
@@ -27,7 +28,6 @@ def mainArgs():
 	return args
 
 def main():
-	'''Do the work.'''
 	# Get cmd line args
 	args = mainArgs()
 	# Check for required programs.
@@ -41,24 +41,22 @@ def main():
 		print('You may need to install them to use all features.')
 	# Set output paths
 	adir_path,bdir_path,outdir,outtab,gffout = mimeo.set_paths(adir=args.adir,bdir=args.bdir,afasta=args.afasta,bfasta=args.bfasta,outdir=args.outfile,outtab=args.outtab,gffout=args.gffout)
-
+	# Get all B to A alignment pairs
 	pairs =  mimeo.get_all_pairs(Adir=adir_path,Bdir=bdir_path)
-
+	# Get chrm lens for GFF header
 	chrLens = mimeo.chromlens(seqDir=adir_path)
-
-	# Compose alignment commands
-	cmds = mimeo.map_LZ_cmds(lzpath=args.lzpath,pairs=pairs,minIdt=args.minIdt,minLen=args.minLen,hspthresh=args.hspthresh,outfile=outtab,verbose=args.verbose)
-	# Run alignments
-	mimeo.run_cmd(cmds,verbose=args.verbose)
-
+	# Do not realign if outtab exists AND recycle mode is set
+	if not args.recycle or not os.path.isfile(outtab):
+		# Compose alignment commands
+		cmds = mimeo.map_LZ_cmds(lzpath=args.lzpath,pairs=pairs,minIdt=args.minIdt,minLen=args.minLen,hspthresh=args.hspthresh,outfile=outtab,verbose=args.verbose,reuseTab=args.recycle)
+		# Run alignments
+		mimeo.run_cmd(cmds,verbose=args.verbose)
 	#Import alignment as df
 	alignments = mimeo.import_Align(infile=outtab,prefix=args.prefix,minLen=100,minIdt=95)
-
-
+	# Write to GFF3
 	with open(gffout, 'w') as f:
 		for x in mimeo.writeGFFlines(alnDF=alignments,chrlens=chrLens,ftype=args.label):
 			f.write(x)
-
 	print("Finished!")
 
 
