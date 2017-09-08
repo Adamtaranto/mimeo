@@ -1,22 +1,5 @@
 # Mimeo
 
-Scan genomes for internally repeated sequences, elements which are repetitive in another species, or high-identity HGT candidate regions between species.  
-
-# Table of contents
-
-* [Modules](#modules)
-* [Getting started](#getting-started)
-    * [Installing Mimeo](#installing-mimeo)
-    * [Example usage](#example-usage)
-* [Standard options](#standard-options)
-  *  [mimeo-self](#mimeo-self)
-  *  [mimeo-x](#mimeo-x)
-  *  [mimeo-map](#mimeo-map)
-* [Alternative alignment engines](#importing-alignments)
-* [License](#license)
-
-# Modules
-
 Mimeo comprises three tools for processing whole-genome alignments:
 
 ## mimeo-self  
@@ -45,10 +28,18 @@ Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed wit
 unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for 
 coverage breakpoints corresponding to nested transposons with differing abundances across the genome.
 
+# Table of contents
 
-# Getting started
+* [Installing Mimeo](#installing-mimeo)
+* [Example usage](#example-usage)
+* [Standard options](#standard-options)
+  *  [mimeo-self](#mimeo-self)
+  *  [mimeo-x](#mimeo-x)
+  *  [mimeo-map](#mimeo-map)
+* [Alternative alignment engines](#importing-alignments)
+* [License](#license)
 
-## Installing Mimeo
+# Installing Mimeo
 
 Requirements: 
   * [LASTZ](http://www.bx.psu.edu/~rsharris/lastz/) genome alignment tool from the Miller Lab, Penn State.
@@ -64,7 +55,7 @@ Clone and install from this repository:
 git clone https://github.com/Adamtaranto/mimeo.git && cd mimeo && pip install -e .
 ```
 
-## Example usage 
+# Example usage 
 
 ### mimeo-self
 
@@ -115,7 +106,7 @@ Output:
   - MM_outdir/B_in_A_id98.tab
 
 
-## Standard options
+# Standard options
 
 ### mimeo-self
 
@@ -254,6 +245,3 @@ File should be sorted by columns 1,3,4
 # License
 
 Software provided under MIT license.
-
-
-
