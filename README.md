@@ -1,5 +1,19 @@
 # Mimeo
 
+# Table of contents
+
+* [Modules](#modules)
+* [Installing Mimeo](#installing-mimeo)
+* [Example usage](#example-usage)
+* [Standard options](#standard-options)
+  *  [mimeo-self](#mimeo-self)
+  *  [mimeo-x](#mimeo-x)
+  *  [mimeo-map](#mimeo-map)
+* [Alternative alignment engines](#importing-alignments)
+* [License](#license)
+
+# Modules
+
 Mimeo comprises three tools for processing whole-genome alignments:
 
 ## mimeo-self  
@@ -27,17 +41,6 @@ segments correspond to directly homologous sequences and internally repetative f
 Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
 unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for 
 coverage breakpoints corresponding to nested transposons with differing abundances across the genome.
-
-# Table of contents
-
-* [Installing Mimeo](#installing-mimeo)
-* [Example usage](#example-usage)
-* [Standard options](#standard-options)
-  *  [mimeo-self](#mimeo-self)
-  *  [mimeo-x](#mimeo-x)
-  *  [mimeo-map](#mimeo-map)
-* [Alternative alignment engines](#importing-alignments)
-* [License](#license)
 
 # Installing Mimeo
 
