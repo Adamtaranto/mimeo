@@ -18,7 +18,7 @@ def mainArgs():
 	parser.add_argument('--label',type=str,default="Self_Repeat",help='Set annotation TYPE field in gff.')
 	parser.add_argument('--prefix',type=str,default="Self_Repeat",help='ID prefix for internal repeats.')
 	parser.add_argument('--keeptemp',action="store_true",default=False,help='If set do not remove temp files.')
-	# LASTZ options
+	# Alignment options
 	parser.add_argument('--lzpath',type=str,default="lastz",help='Custom path to LASTZ executable if not in $PATH.')
 	parser.add_argument('--bedtools',type=str,default="bedtools",help='Custom path to bedtools executable if not in $PATH.')
 	parser.add_argument('--minIdt',type=int,default=60,help='Minimum alignment identity to report.')
