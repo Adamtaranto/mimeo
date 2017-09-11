@@ -105,12 +105,16 @@ def isfile(path):
 	else:
 		return path
 
-def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=None,gffout=None,suppresBdir=False):
+def set_paths(adir=None,bdir=None,afasta=None,bfasta=None,outdir=None,outtab=None,gffout=None,suppresBdir=False,runtrf=None):
 	if not adir:
 		# Make temp directory
 		tempdir = os.path.join(os.getcwd(),"temp_" + getTimestring())
 		os.makedirs(tempdir)
 	elif not bdir and not suppresBdir:
+		# Make temp directory
+		tempdir = os.path.join(os.getcwd(),"temp_" + getTimestring())
+		os.makedirs(tempdir)
+	elif runtrf:
 		# Make temp directory
 		tempdir = os.path.join(os.getcwd(),"temp_" + getTimestring())
 		os.makedirs(tempdir)
@@ -249,6 +253,58 @@ def import_Align(infile=None,prefix=None,minLen=100,minIdt=95):
 		df['UID'] = 'BHit_' + df.index.astype(str).str.zfill(fillLen)
 	return df
 
+def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmatch=2,tmismatch=7,tdelta=7,tPM=80,tPI=10,tminscore=50,tmaxperiod=50,maxtandem=40):
+	alignDF['UID'] = 'TEMPID_' + alignDF.index.astype(str)
+	# Reconstitute A-genome fasta from split dir
+	seqMaster = dict()
+	for A in glob.glob(os.path.join(adir,'*')):
+		for rec in SeqIO.parse(A, "fasta"):
+			seqMaster[rec.id] = rec
+	# Write aligned segments
+	AlnFasta = os.path.join(tempdir,"raw_A_genome_hits.fa")
+	with open(AlnFasta, "w") as handle:
+		for index, row in alignDF.iterrows():
+			rec = seqMaster[row['tName']][int(row['tStart']):int(row['tEnd'])]
+			rec.id = row['UID']
+			SeqIO.write(rec, handle, "fasta")
+	# Run TRF
+	cmds = list()
+	trf_cmd = ' '.join([str(TRFpath),AlnFasta,str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',AlnFasta + '.dat'])
+	cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
+	cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
+	cmds.append(trf_cmd)
+	maskfile = '.'.join(['raw_A_genome_hits.fa',str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
+	cmds.append(' '.join(['mv',maskfile, AlnFasta + '.mask' ]))
+	alnmasked = AlnFasta + '.mask'
+	run_cmd(cmds,verbose=True,keeptemp=False)
+	# Make keeplist
+	keeplist = list()
+	for rec in SeqIO.parse(alnmasked, "fasta"):
+		if rec.seq.count('N')/len(rec.seq) * 100 < float(maxtandem):
+			keeplist.append(rec.id)
+	# Filter align dataframe
+	alignments = alignDF.loc[alignDF['UID'].isin(keeplist)].copy()
+	# Reindex
+	alignments = alignments.sort_values(['tName','tStart','tEnd','tStrand'], ascending=[True,True,True,True])
+	alignments = alignments.reset_index(drop=True)
+	alignments.index = alignments.index + 1
+	fillLen = len(str(len(alignments.index)))
+	if prefix:
+		alignments['UID'] = str(prefix) + '_' + alignments.index.astype(str).str.zfill(fillLen)
+	else:
+		alignments['UID'] = 'BHit_' + alignments.index.astype(str).str.zfill(fillLen)
+	# Return filtered subset
+	return alignments
+
+def writetrf(alignDF=None,outtab=None):
+	# Write alignment dataframe to LZ tab format
+	outfile = outtab + '.trf'
+	with open(outfile, 'w') as handle:
+		handle.write('\t'.join(['#name1','strand1','start1','end1','name2','strand2','start2+','end2+','score','identity'+ '\n']))
+		for index, row in alignDF.iterrows():
+			handle.write('\t'.join([row['tName'],row['tStrand'],row['tStart'],row['tEnd'],row['qName'],row['qStrand'],row['qStart'],row['qEnd'],row['score'],row['pID']+ '\n']))
+	return outfile
+
 def writeGFFlines(alnDF=None,chrlens=None,ftype='BHit'):
 	yield '##gff-version 3\n'
 	if chrlens:
@@ -319,12 +375,14 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 	## Sort filtered bed file by chrom, start, stop
 	cmds.append(' '.join(["sort -k 1,1 -k 2n,3n",temp_bed,">",temp_bed_sorted]))
 	## Generate non-zero coverage scores for target genome regions, filter for min coverage of x
+	cmds.append(' '.join(["echo 'Generate non-zero coverage scores for target genome regions, filter for min coverage of x' >&2"]))
 	cmds.append(' '.join([bdtlsPath,"genomecov -bg -i",temp_bed_sorted,"-g",AchrmLens,"| awk -v OFS='\\t' -v cov=" + str(minCov), "'0+$4 >= cov {print ;}' >",temp_bed]))
 	## Re-sort
 	cmds.append(' '.join(["sort -k 1,1 -k 2n,3n",temp_bed,">",temp_bed_sorted]))
 	## Merge end-to-end annotations
 	cmds.append(' '.join([bdtlsPath,"merge -i",temp_bed_sorted,">",temp_bed]))
 	# Write GFF header
+	cmds.append(' '.join(["echo 'Writing GFF' >&2"]))
 	cmds.append(' '.join(["echo $'##gff-version 3\\n#seqid\\tsource\\ttype\\tstart\\tend\\tscore\\tstrand\\tphase\\tattributes' >", outgff]))
 	## Filter orphan fragments < xx && Create GFF3 file
 	cmds.append(' '.join(["awk -v minLen="+ str(minLen),"'{ if($3 - $2 >= minLen) print ;}'",temp_bed,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>",outgff]))
@@ -377,6 +435,7 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				## Sort filtered file by chrom, start, stop
 				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
 	# Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode) 
+	cmds.append(' '.join(["echo 'Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode)' >&2"]))
 	# Set temp output files
 	temp_bed = "temp.bed"
 	temp_bed_sorted = "temp_sorted.bed"
@@ -401,6 +460,7 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 		if reuseTab and not os.path.isfile(outtab_intra) and os.path.isfile(outtab):
 			print("Warning: Could not find intra-chrom results file: %s \nRe-run in '--strictSelf' mode if required." % outtab_intra)
 		else:
+			cmds.append(' '.join(["echo 'Applying separate coverage filtering for WITHIN chromosome hits' >&2"]))
 			temp_bed_intra = "temp.bed"
 			temp_bed_sorted_intra = "temp_sorted.bed"
 			## Port filtered hits to bed format: "name1,start1,end1"

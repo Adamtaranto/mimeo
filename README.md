@@ -47,6 +47,7 @@ coverage breakpoints corresponding to nested transposons with differing abundanc
 Requirements: 
   * [LASTZ](http://www.bx.psu.edu/~rsharris/lastz/) genome alignment tool from the Miller Lab, Penn State.
   * [bedtools](http://bedtools.readthedocs.io/en/latest/content/installation.html)
+  * [trf](https://tandem.bu.edu/trf/trf.html)
 
 Install from PyPi:
 ```bash
@@ -96,17 +97,36 @@ Output:
 ### mimeo-map
 
 Annotate features in genome A which are > 100bp and occur with >=
-98% identity in genome B. No coverage filter, all alignments are reported.
+90% identity in genome B. No coverage filter, all alignments are reported.
 
 ```bash
 mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
--d MM_outdir --gffout B_in_A_id98.gff3 --outfile B_in_A_id98.tab \
---label B_98 --prefix B_98 --minIdt 98 --minLen 100
+-d MM_outdir --gffout B_in_A_id90.gff3 --outfile B_in_A_id90.tab \
+--label B_90 --prefix B_90 --minIdt 90 --minLen 100 
 ```
 
 Output: 
-  - MM_outdir/B_in_A_id98.gff3
-  - MM_outdir/B_in_A_id98.tab
+  - MM_outdir/B_in_A_id90.gff3
+  - MM_outdir/B_in_A_id90.tab
+
+### mimeo-map + SSR filter
+
+Annotate features in genome A which are > 100bp and occur with >=
+98% identity in genome B. Reuse B to A-genome alignment from previous run.
+
+Filter out hits which are >= 40% tandem repeats. Write filtered hits
+as tab file and GFF3 annotation.
+
+```bash
+mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
+-d MM_outdir --gffout B_in_A_id98_maxSSR40.gff3 --outfile B_in_A_id98.tab \
+--label B_98 --prefix B_98 --minIdt 98 --minLen 100 \
+--recycle --maxtandem 40 --writeTRF
+```
+
+Output: 
+  - MM_outdir/B_in_A_id98_maxSSR40.gff3
+  - MM_outdir/B_in_A_id98.tab.trf
 
 
 # Standard options
@@ -199,8 +219,12 @@ optional arguments:
 usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                  [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                  [--outfile OUTFILE] [--verbose] [--label LABEL]
-                 [--prefix PREFIX] [--lzpath LZPATH] [--minIdt MINIDT]
-                 [--minLen MINLEN] [--hspthresh HSPTHRESH]
+                 [--prefix PREFIX] [--keeptemp] [--lzpath LZPATH]
+                 [--minIdt MINIDT] [--minLen MINLEN] [--hspthresh HSPTHRESH]
+                 [--TRFpath TRFPATH] [--tmatch TMATCH] [--tmismatch TMISMATCH]
+                 [--tdelta TDELTA] [--tPM TPM] [--tPI TPI]
+                 [--tminscore TMINSCORE] [--tmaxperiod TMAXPERIOD]
+                 [--maxtandem MAXTANDEM] [--writeTRF]
 
 Find all high-identity segments shared between genomes.
 
@@ -213,16 +237,35 @@ optional arguments:
   -r, --recycle         Use existing alignment "--outfile" if found.
   -d OUTDIR, --outdir OUTDIR
                         Write output files to this directory. (Default: cwd)
-  --gffout GFFOUT       Name of GFF3 annotation file.
+  --gffout GFFOUT       Name of GFF3 annotation file. If not set, suppress
+                        output.
   --outfile OUTFILE     Name of alignment result file.
   --verbose             If set report LASTZ progress.
   --label LABEL         Set annotation TYPE field in gff.
   --prefix PREFIX       ID prefix for B-genome hits annotated in A-genome.
+  --keeptemp            If set do not remove temp files.
   --lzpath LZPATH       Custom path to LASTZ executable if not in $PATH.
   --minIdt MINIDT       Minimum alignment identity to report.
   --minLen MINLEN       Minimum alignment length to report.
   --hspthresh HSPTHRESH
                         Set HSP min score threshold for LASTZ.
+  --TRFpath TRFPATH     Custom path to TRF executable if not in $PATH.
+  --tmatch TMATCH       TRF matching weight
+  --tmismatch TMISMATCH
+                        TRF mismatching penalty
+  --tdelta TDELTA       TRF indel penalty
+  --tPM TPM             TRF match probability
+  --tPI TPI             TRF indel probability
+  --tminscore TMINSCORE
+                        TRF minimum alignment score to report
+  --tmaxperiod TMAXPERIOD
+                        TRF maximum period size to report
+  --maxtandem MAXTANDEM
+                        Max percentage of an A-genome alignment which may be
+                        masked by TRF. If exceeded, alignment will be
+                        discarded.
+  --writeTRF            If set write TRF filtered alignment file for use with
+                        other mimeo modules.
 ```
 
 # Importing alignments
