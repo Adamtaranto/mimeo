@@ -296,6 +296,30 @@ def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmat
 	# Return filtered subset
 	return alignments
 
+
+def trfFasta(fasta=None,outfile=None,TRFpath='trf',tmatch=2,tmismatch=7,tdelta=7,tPM=80,tPI=10,tminscore=50,tmaxperiod=50,maxtandem=40,verbose=True,keeptemp=False):
+	# Run TRF
+	cmds = list()
+	trf_cmd = ' '.join([str(TRFpath),fasta,str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',os.path.basename(fasta) + '.dat'])
+	cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
+	cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
+	cmds.append(trf_cmd)
+	maskfile = '.'.join([os.path.basename(fasta),str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
+	cmds.append(' '.join(['mv',maskfile, fasta + '.mask' ]))
+	masked = fasta + '.mask'
+	run_cmd(cmds,verbose=True,keeptemp=False)
+	# Make keeplist
+	keeplist = list()
+	for rec in SeqIO.parse(masked, "fasta"):
+		if rec.seq.count('N')/len(rec.seq) * 100 < float(maxtandem):
+			keeplist.append(rec.id)
+	# Write seqs that pass filter to new file
+	with open(outfile, "w") as handle:
+		for rec in SeqIO.parse(fasta, "fasta"):
+			if rec.id in keeplist:
+				SeqIO.write(rec, handle, "fasta")
+
+
 def writetrf(alignDF=None,outtab=None):
 	# Write alignment dataframe to LZ tab format
 	outfile = outtab + '.trf'
