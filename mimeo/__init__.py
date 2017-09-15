@@ -312,7 +312,7 @@ def writeGFFlines(alnDF=None,chrlens=None,ftype='BHit'):
 			yield ' '.join(["##sequence-region",str(name),'1',str(maxlen) + '\n'])
 	yield '\t'.join(['##seqid','source','type','start','end','score','strand','phase','attributes' + '\n'])
 	for index, row in alnDF.iterrows():
-		attributes = ';'.join(['ID=' +row['UID'],'identity=' + str(row['pID']),'Source=' + row['qName'] + '_' + row['qStrand'] + '_' + str(row['qStart']) + '_' + str(row['qEnd'])])
+		attributes = ';'.join(['ID=' +row['UID'],'identity=' + str(row['pID']),'B_locus=' + row['qName'] + '_' + row['qStrand'] + '_' + str(row['qStart']) + '_' + str(row['qEnd'])])
 		yield '\t'.join([row['tName'],'mimeo-map',ftype,str(row['tStart']),str(row['tEnd']),str(row['score']),row['tStrand'],'.',attributes + '\n'])
 
 def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,outfile=None,verbose=False):
@@ -338,6 +338,7 @@ def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,o
 		## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 		## Sort filtered file by chrom, start, stop
 		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outfile]))
+		cmds.append(' '.join(["rm",temp_outfile]))
 	return cmds
 
 def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 ,hspthresh=3000, minCov=5 , AchrmLens=None, reuseTab=False, label="B_repeats",prefix=None,verbose=False):
@@ -364,6 +365,7 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 			## Sort filtered file by chrom, start, stop
 			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+			cmds.append(' '.join(["rm",temp_outfile]))
 	# Set temp output files
 	temp_bed = "temp.bed"
 	temp_bed_sorted = "temp_sorted.bed"
@@ -419,6 +421,7 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
 				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+				cmds.append(' '.join(["rm",temp_outfile]))
 			else:
 				# Align to self with diff settings
 				t_file=A
@@ -434,6 +437,7 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
 				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
+				cmds.append(' '.join(["rm",temp_outfile]))
 	# Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode) 
 	cmds.append(' '.join(["echo 'Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode)' >&2"]))
 	# Set temp output files
