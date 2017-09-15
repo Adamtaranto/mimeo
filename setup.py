@@ -21,7 +21,7 @@ install_requires = [
 desc = """Scan genomes for internally repeated sequences, elements which are repetitive in another species, or high-identity HGT candidate regions between species."""
 
 setup(name='mimeo',
-      version='1.0.0',
+      version='1.1.0',
       description=desc,
       url='https://github.com/Adamtaranto/mimeo',
       author='Adam Taranto',
@@ -38,6 +38,7 @@ setup(name='mimeo',
             'mimeo-self=mimeo.run_self:main',
             'mimeo-x=mimeo.run_interspecies:main',
             'mimeo-map=mimeo.run_map:main',
+            'mimeo-filter=mimeo.run_filter:main',
         ],
     },
     )
