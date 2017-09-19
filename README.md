@@ -20,31 +20,28 @@ Mimeo comprises three tools for parsing repeats from whole-genome alignments:
 ## mimeo-self  
 
 **Internal repeat finder.** Mimeo-self aligns a genome to itself and extracts high-identity segments above
-an coverage threshold. This method is less sensitive to disruption by indels and repeat-directed point mutations than
-kmer-based methods such as RepeatScout. Reported annotations indicate overlaping segments above the coverage threshold,
-mimeo-self does not attempt to separate nested repeats. Use this tool to identify candidate repeat regions for curated 
-annotation.
+a coverage threshold. This method is less sensitive to disruption by indels and repeat-directed point mutations than
+kmer-based methods such as RepeatScout. Reported annotations indicate overlapping segments above the coverage threshold,
+mimeo-self does not attempt to separate nested repeats. Use this tool to identify candidate repeat regions for curated annotation.
 
 ## mimeo-x  
 
-**Cross-species repeat finder.** A newly acquired or low-copy transposon may slip past copy-numner based 
-annotation tools. Mimeo-x searches for features which are abundant in an external reference genome, allowing for
-annotation of complete elements as they occur in a horizontal-transfer donor species, or of conserved coding segements
+**Cross-species repeat finder.** A newly acquired or low-copy transposon may slip past copy-number based annotation tools. Mimeo-x searches for features which are abundant in an external reference genome, allowing for
+annotation of complete elements as they occur in a horizontal-transfer donor species, or of conserved coding segments
 of related transposon families.
 
 ## mimeo-map  
 
 **Find all high-identity segments shared between genomes.** Mimeo-map identifies candidate horizontally
-transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned 
-segments correspond to directly homologous sequences and internally repetative features.  
+transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned segments correspond to directly homologous sequences and internally repetitive features.  
 
 
 Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
-unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for 
-coverage breakpoints corresponding to nested transposons with differing abundances across the genome.  
+unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for coverage breakpoints corresponding to nested transposons with differing abundances across the genome.  
 
+## mimeo-filter
 
-Note: An addition tool **mimeo-filter** is included to allow post-filtering of SSR-rich sequences from fasta formatted
+An additional tool **mimeo-filter** is now included to allow post-filtering of SSR-rich sequences from FASTA formatted
 candidate-repeat libraries.  
 
 
@@ -118,7 +115,7 @@ Output:
 ### mimeo-map + SSR filter
 
 Annotate features in genome A which are > 100bp and occur with >=
-98% identity in genome B. Reuse B to A-genome alignment from previous run.
+98% identity in genome B. Reuse B to A-genome alignment from the previous run.
 
 Filter out hits which are >= 40% tandem repeats. Write filtered hits
 as tab file and GFF3 annotation.
@@ -152,7 +149,7 @@ Output:
 ### mimeo-self
 
 ```
-usage: mimeo-self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
+Usage: mimeo-self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
                   [--gffout GFFOUT] [--outfile OUTFILE] [--verbose]
                   [--label LABEL] [--prefix PREFIX] [--lzpath LZPATH]
                   [--bedtools BEDTOOLS] [--minIdt MINIDT] [--minLen MINLEN]
@@ -160,44 +157,42 @@ usage: mimeo-self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
                   [--intraCov INTRACOV] [--strictSelf]
 
 Internal repeat finder. Mimeo-self aligns a genome to itself and extracts
-high-identity segments above an coverage threshold.
+high-identity segments above a coverage threshold.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --adir ADIR           Name of directory containing sequences from genome.
-                        Write split files here if providing genome as
-                        multifasta.
-  --afasta AFASTA       Genome as multifasta.
-  -r, --recycle         Use existing alignment "--outfile" if found.
-  -d OUTDIR, --outdir OUTDIR
-                        Write output files to this directory. (Default: cwd)
-  --gffout GFFOUT       Name of GFF3 annotation file.
-  --outfile OUTFILE     Name of alignment result file.
-  --verbose             If set report LASTZ progress.
-  --label LABEL         Set annotation TYPE field in gff.
-  --prefix PREFIX       ID prefix for internal repeats.
-  --lzpath LZPATH       Custom path to LASTZ executable if not in $PATH.
-  --bedtools BEDTOOLS   Custom path to bedtools executable if not in $PATH.
-  --minIdt MINIDT       Minimum alignment identity to report.
-  --minLen MINLEN       Minimum alignment length to report.
-  --minCov MINCOV       Minimum depth of aligned segments to report repeat
-                        feature.
-  --hspthresh HSPTHRESH
-                        Set HSP min score threshold for LASTZ.
-  --intraCov INTRACOV   Minimum depth of aligned segments from same scaffold
-                        to report feature. Used if "--strictSelf" mode is
-                        selected.
-  --strictSelf          If set process same-scaffold alignments separately
-                        with option to use higher "--intraCov" threshold.
-                        Sometime useful to avoid false repeat calls from
-                        staggered alignments over SSRs or short tandem
-                        duplication.
+Optional arguments:
+  -h, --help      Show this help message and exit.
+  --adir          Name of the directory containing sequences from the genome.
+                  Write split files here if providing genome as
+                  multifasta.
+  --afasta        Genome as multifasta.
+  -r, --recycle   Use existing alignment "--outfile" if found.
+  -d , --outdir   Write output files to this directory. (Default: cwd)
+  --gffout        Name of GFF3 annotation file.
+  --outfile       Name of alignment result file.
+  --verbose       If set report LASTZ progress.
+  --label         Set annotation TYPE field in gff.
+  --prefix        ID prefix for internal repeats.
+  --lzpath        Custom path to LASTZ executable if not in $PATH.
+  --bedtools      Custom path to bedtools executable if not in $PATH.
+  --minIdt        Minimum alignment identity to report.
+  --minLen        Minimum alignment length to report.
+  --minCov        Minimum depth of aligned segments to report repeat
+                  feature.
+  --hspthresh     Set HSP min score threshold for LASTZ.
+  --intraCov      Minimum depth of aligned segments from the same scaffold
+                  to report feature. Used if "--strictSelf" mode is
+                  selected.
+  --strictSelf    If set process same-scaffold alignments separately
+                  with the option to use higher "--intraCov" threshold.
+                  Sometimes useful to avoid false repeat calls from
+                  staggered alignments over SSRs or short tandem
+                  duplication.
 ```
 
 ### mimeo-x
 
 ```
-usage: mimeo-x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
+Usage: mimeo-x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                [--outfile OUTFILE] [--verbose] [--label LABEL]
                [--prefix PREFIX] [--lzpath LZPATH] [--bedtools BEDTOOLS]
@@ -207,34 +202,32 @@ usage: mimeo-x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
 Cross-species repeat finder. Mimeo-x searches for features which are abundant
 in an external reference genome.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --adir ADIR           Name of directory containing sequences from A genome.
-  --bdir BDIR           Name of directory containing sequences from B genome.
-  --afasta AFASTA       A genome as multifasta.
-  --bfasta BFASTA       B genome as multifasta.
-  -r, --recycle         Use existing alignment "--outfile" if found.
-  -d OUTDIR, --outdir OUTDIR
-                        Write output files to this directory. (Default: cwd)
-  --gffout GFFOUT       Name of GFF3 annotation file.
-  --outfile OUTFILE     Name of alignment result file.
-  --verbose             If set report LASTZ progress.
-  --label LABEL         Set annotation TYPE field in gff.
-  --prefix PREFIX       ID prefix for B-genome repeats annotated in A-genome.
-  --lzpath LZPATH       Custom path to LASTZ executable if not in $PATH.
-  --bedtools BEDTOOLS   Custom path to bedtools executable if not in $PATH.
-  --minIdt MINIDT       Minimum alignment identity to report.
-  --minLen MINLEN       Minimum alignment length to report.
-  --minCov MINCOV       Minimum depth of B-genome hits to report feature in
-                        A-genome.
-  --hspthresh HSPTHRESH
-                        Set HSP min score threshold for LASTZ.
+Optional arguments:
+  -h, --help      Show this help message and exit.
+  --adir          Name of the directory containing sequences from A genome.
+  --bdir          Name of the directory containing sequences from B genome.
+  --afasta        A genome as multifasta.
+  --bfasta        B genome as multifasta.
+  -r, --recycle   Use existing alignment "--outfile" if found.
+  -d , --outdir   Write output files to this directory. (Default: cwd)
+  --gffout        Name of GFF3 annotation file.
+  --outfile       Name of alignment result file.
+  --verbose       If set report LASTZ progress.
+  --label         Set annotation TYPE field in GFF.
+  --prefix        ID prefix for B-genome repeats annotated in A-genome.
+  --lzpath        Custom path to LASTZ executable if not in $PATH.
+  --bedtools      Custom path to bedtools executable if not in $PATH.
+  --minIdt        Minimum alignment identity to report.
+  --minLen        Minimum alignment length to report.
+  --minCov        Minimum depth of B-genome hits to report feature in
+                  A-genome.
+  --hspthresh     Set HSP min score threshold for LASTZ.
 ```
 
 ### mimeo-map
 
 ```
-usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
+Usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                  [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                  [--outfile OUTFILE] [--verbose] [--label LABEL]
                  [--prefix PREFIX] [--keeptemp] [--lzpath LZPATH]
@@ -246,83 +239,71 @@ usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
 
 Find all high-identity segments shared between genomes.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --adir ADIR           Name of directory containing sequences from A genome.
-  --bdir BDIR           Name of directory containing sequences from B genome.
-  --afasta AFASTA       A genome as multifasta.
-  --bfasta BFASTA       B genome as multifasta.
-  -r, --recycle         Use existing alignment "--outfile" if found.
-  -d OUTDIR, --outdir OUTDIR
-                        Write output files to this directory. (Default: cwd)
-  --gffout GFFOUT       Name of GFF3 annotation file. If not set, suppress
-                        output.
-  --outfile OUTFILE     Name of alignment result file.
-  --verbose             If set report LASTZ progress.
-  --label LABEL         Set annotation TYPE field in gff.
-  --prefix PREFIX       ID prefix for B-genome hits annotated in A-genome.
-  --keeptemp            If set do not remove temp files.
-  --lzpath LZPATH       Custom path to LASTZ executable if not in $PATH.
-  --minIdt MINIDT       Minimum alignment identity to report.
-  --minLen MINLEN       Minimum alignment length to report.
-  --hspthresh HSPTHRESH
-                        Set HSP min score threshold for LASTZ.
-  --TRFpath TRFPATH     Custom path to TRF executable if not in $PATH.
-  --tmatch TMATCH       TRF matching weight
-  --tmismatch TMISMATCH
-                        TRF mismatching penalty
-  --tdelta TDELTA       TRF indel penalty
-  --tPM TPM             TRF match probability
-  --tPI TPI             TRF indel probability
-  --tminscore TMINSCORE
-                        TRF minimum alignment score to report
-  --tmaxperiod TMAXPERIOD
-                        TRF maximum period size to report
-  --maxtandem MAXTANDEM
-                        Max percentage of an A-genome alignment which may be
-                        masked by TRF. If exceeded, alignment will be
-                        discarded.
-  --writeTRF            If set write TRF filtered alignment file for use with
-                        other mimeo modules.
+Optional arguments:
+  -h, --help      Show this help message and exit.
+  --adir          Name of the directory containing sequences from A genome.
+  --bdir          Name of the directory containing sequences from B genome.
+  --afasta        A genome as multifasta.
+  --bfasta        B genome as multifasta.
+  -r, --recycle   Use existing alignment "--outfile" if found.
+  -d, --outdir    Write output files to this directory. (Default: cwd)
+  --gffout        Name of GFF3 annotation file. If not set, suppress
+                  output.
+  --outfile       Name of alignment result file.
+  --verbose       If set report LASTZ progress.
+  --label         Set annotation TYPE field in GFF.
+  --prefix        ID prefix for B-genome hits annotated in A-genome.
+  --keeptemp      If set does not remove temp files.
+  --lzpath        Custom path to LASTZ executable if not in $PATH.
+  --minIdt        Minimum alignment identity to report.
+  --minLen        Minimum alignment length to report.
+  --hspthresh     Set HSP min score threshold for LASTZ.
+  --TRFpath       Custom path to TRF executable if not in $PATH.
+  --tmatch        TRF matching weight.
+  --tmismatch     TRF mismatching penalty.
+  --tdelta        TRF indel penalty.
+  --tPM           TRF match probability.
+  --tPI           TRF indel probability.
+  --tminscore     TRF minimum alignment score to report.
+  --tmaxperiod    TRF maximum period size to report.
+  --maxtandem     Max percentage of an A-genome alignment which may be masked by TRF. 
+                  If exceeded, the alignment will be discarded.
+  --writeTRF      If set write TRF filtered alignment file for use with
+                  other mimeo modules.
 ```
 
 
-###mimeo-filter
+### mimeo-filter
 
 ```
-usage: mimeo-filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
+Usage: mimeo-filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
                     [--keeptemp] [--verbose] [--TRFpath TRFPATH]
                     [--tmatch TMATCH] [--tmismatch TMISMATCH]
                     [--tdelta TDELTA] [--tPM TPM] [--tPI TPI]
                     [--tminscore TMINSCORE] [--tmaxperiod TMAXPERIOD]
                     [--maxtandem MAXTANDEM]
 
-Filter SSR containing sequences from fasta library of repeats.
+Filter SSR containing sequences from FASTA library of repeats.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --infile INFILE       Name of directory containing sequences from A genome.
-  -d OUTDIR, --outdir OUTDIR
-                        Write output files to this directory. (Default: cwd)
-  --outfile OUTFILE     Name of alignment result file.
-  --keeptemp            If set do not remove temp files.
+Optional arguments:
+  -h, --help            Show this help message and exit.
+  --infile              Name of the directory containing sequences from A genome.
+  -d, --outdir          Write output files to this directory. (Default: cwd)
+  --outfile             Name of alignment result file.
+  --keeptemp            If set does not remove temp files.
   --verbose             If set report LASTZ progress.
-  --TRFpath TRFPATH     Custom path to TRF executable if not in $PATH.
-  --tmatch TMATCH       TRF matching weight
-  --tmismatch TMISMATCH
-                        TRF mismatching penalty
-  --tdelta TDELTA       TRF indel penalty
-  --tPM TPM             TRF match probability
-  --tPI TPI             TRF indel probability
-  --tminscore TMINSCORE
-                        TRF minimum alignment score to report
-  --tmaxperiod TMAXPERIOD
-                        TRF maximum period size to report. Note: Setting this
+  --TRFpath             Custom path to TRF executable if not in $PATH.
+  --tmatch              TRF matching weight
+  --tmismatch           TRF mismatching penalty.
+  --tdelta              TRF indel penalty.
+  --tPM                 TRF match probability.
+  --tPI                 TRF indel probability.
+  --tminscore           TRF minimum alignment score to report.
+  --tmaxperiod          TRF maximum period size to report. Note: Setting this
                         score too high may exclude some LTR retrotransposons.
                         Optimal len to exclude only SSRs is 10-50bp.
-  --maxtandem MAXTANDEM
-                        Max percentage of a sequence which may be masked by
-                        TRF. If exceeded, element will be discarded.
+  --maxtandem           Max percentage of a sequence which may be masked by
+                        TRF. If exceeded, the element will be discarded.
 
 ```
 
