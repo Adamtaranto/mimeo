@@ -9,6 +9,7 @@
   *  [mimeo-self](#mimeo-self)
   *  [mimeo-x](#mimeo-x)
   *  [mimeo-map](#mimeo-map)
+  *  [mimeo-filter](#mimeo-filter)
 * [Alternative alignment engines](#importing-alignments)
 * [License](#license)
 
@@ -40,7 +41,12 @@ segments correspond to directly homologous sequences and internally repetative f
 
 Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
 unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for 
-coverage breakpoints corresponding to nested transposons with differing abundances across the genome.
+coverage breakpoints corresponding to nested transposons with differing abundances across the genome.  
+
+
+Note: An addition tool **mimeo-filter** is included to allow post-filtering of SSR-rich sequences from fasta formatted
+candidate-repeat libraries.  
+
 
 # Installing Mimeo
 
@@ -127,6 +133,18 @@ mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 Output: 
   - MM_outdir/B_in_A_id98_maxSSR40.gff3
   - MM_outdir/B_in_A_id98.tab.trf
+
+### mimeo-filter
+
+Filter sequences comprised of >= 40% short tandem repeats from a multifasta
+library of candidate transposons.
+
+```bash
+mimeo-filter --infile data/candidate_TEs.fa
+```
+
+Output:
+  - candidate_TEs_filtered.fa
 
 
 # Standard options
@@ -267,6 +285,47 @@ optional arguments:
   --writeTRF            If set write TRF filtered alignment file for use with
                         other mimeo modules.
 ```
+
+
+###mimeo-filter
+
+```
+usage: mimeo-filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
+                    [--keeptemp] [--verbose] [--TRFpath TRFPATH]
+                    [--tmatch TMATCH] [--tmismatch TMISMATCH]
+                    [--tdelta TDELTA] [--tPM TPM] [--tPI TPI]
+                    [--tminscore TMINSCORE] [--tmaxperiod TMAXPERIOD]
+                    [--maxtandem MAXTANDEM]
+
+Filter SSR containing sequences from fasta library of repeats.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --infile INFILE       Name of directory containing sequences from A genome.
+  -d OUTDIR, --outdir OUTDIR
+                        Write output files to this directory. (Default: cwd)
+  --outfile OUTFILE     Name of alignment result file.
+  --keeptemp            If set do not remove temp files.
+  --verbose             If set report LASTZ progress.
+  --TRFpath TRFPATH     Custom path to TRF executable if not in $PATH.
+  --tmatch TMATCH       TRF matching weight
+  --tmismatch TMISMATCH
+                        TRF mismatching penalty
+  --tdelta TDELTA       TRF indel penalty
+  --tPM TPM             TRF match probability
+  --tPI TPI             TRF indel probability
+  --tminscore TMINSCORE
+                        TRF minimum alignment score to report
+  --tmaxperiod TMAXPERIOD
+                        TRF maximum period size to report. Note: Setting this
+                        score too high may exclude some LTR retrotransposons.
+                        Optimal len to exclude only SSRs is 10-50bp.
+  --maxtandem MAXTANDEM
+                        Max percentage of a sequence which may be masked by
+                        TRF. If exceeded, element will be discarded.
+
+```
+
 
 # Importing alignments
 
