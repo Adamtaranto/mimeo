@@ -7,6 +7,7 @@ import tempfile
 import subprocess
 import pandas as pd
 from Bio import SeqIO
+from shlex import quote
 from collections import Counter
 from datetime import datetime
 
@@ -269,13 +270,13 @@ def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmat
 			SeqIO.write(rec, handle, "fasta")
 	# Run TRF
 	cmds = list()
-	trf_cmd = ' '.join([str(TRFpath),AlnFasta,str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',AlnFasta + '.dat'])
+	trf_cmd = ' '.join([str(TRFpath),quote(AlnFasta),str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',quote(AlnFasta + '.dat')])
 	cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
-	cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
+	#cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
 	cmds.append(trf_cmd)
 	maskfile = '.'.join(['raw_A_genome_hits.fa',str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
-	cmds.append(' '.join(['mv',maskfile, AlnFasta + '.mask' ]))
-	alnmasked = AlnFasta + '.mask'
+	cmds.append(' '.join(['mv',maskfile, quote(AlnFasta + '.mask') ]))
+	alnmasked = quote(AlnFasta + '.mask')
 	run_cmd(cmds,verbose=True,keeptemp=False)
 	# Make keeplist
 	keeplist = list()
@@ -300,12 +301,12 @@ def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmat
 def trfFasta(fasta=None,outfile=None,TRFpath='trf',tmatch=2,tmismatch=7,tdelta=7,tPM=80,tPI=10,tminscore=50,tmaxperiod=50,maxtandem=40,verbose=True,keeptemp=False):
 	# Run TRF
 	cmds = list()
-	trf_cmd = ' '.join([str(TRFpath),fasta,str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',os.path.basename(fasta) + '.dat'])
+	trf_cmd = ' '.join([str(TRFpath),quote(fasta),str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',os.path.basename(fasta) + '.dat'])
 	cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
-	cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
+	#cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
 	cmds.append(trf_cmd)
 	maskfile = '.'.join([os.path.basename(fasta),str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
-	cmds.append(' '.join(['mv',maskfile, fasta + '.mask' ]))
+	cmds.append(' '.join(['mv', maskfile, quote(fasta + '.mask')]))
 	masked = fasta + '.mask'
 	run_cmd(cmds,verbose=True,keeptemp=False)
 	# Make keeplist
@@ -339,7 +340,7 @@ def writeGFFlines(alnDF=None,chrlens=None,ftype='BHit'):
 		attributes = ';'.join(['ID=' +row['UID'],'identity=' + str(row['pID']),'B_locus=' + row['qName'] + '_' + row['qStrand'] + '_' + str(row['qStart']) + '_' + str(row['qEnd'])])
 		yield '\t'.join([row['tName'],'mimeo-map',ftype,str(row['tStart']),str(row['tEnd']),str(row['score']),row['tStrand'],'.',attributes + '\n'])
 
-def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,outfile=None,verbose=False):
+def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100,hspthresh=3000,outfile=None,verbose=False):
 	''' Map high identity B segments onto genome A (i.e. candidate HGT regions). Report as GFF. '''
 	if verbose:
 		verb = 1
@@ -347,7 +348,7 @@ def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,o
 		verb = 0
 	cmds = list()
 	# Write header
-	cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", outfile]))
+	cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", quote(outfile)]))
 	for A,B in pairs:
 		t_file=A
 		t_name=os.path.splitext(os.path.basename(A))[0]
@@ -355,13 +356,13 @@ def map_LZ_cmds(lzpath="lastz",pairs=None,minIdt=95,minLen=100, hspthresh=3000,o
 		q_name=os.path.splitext(os.path.basename(B))[0]
 		temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
 		# Compose LASTZ command
-		cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+		cmds.append(' '.join([lzpath,quote(t_file),quote(q_file),"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
 		# Scrub % symbols
 		cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
 		## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 		## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 		## Sort filtered file by chrom, start, stop
-		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outfile]))
+		cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", quote(outfile)]))
 		cmds.append(' '.join(["rm",temp_outfile]))
 	return cmds
 
@@ -373,7 +374,7 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 		verb = 0
 	cmds = list()
 	if not reuseTab or not os.path.isfile(outtab):
-		cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", outtab]))
+		cmds.append(' '.join(["echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >", quote(outtab)]))
 		# loop writing B to A mapping cmds
 		for A,B in pairs:
 			t_file=A
@@ -382,13 +383,13 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 			q_name=os.path.splitext(os.path.basename(B))[0]
 			temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
 			# Compose LASTZ command
-			cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+			cmds.append(' '.join([lzpath,quote(t_file),quote(q_file),"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
 			# Scrub % symbols
 			cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
 			## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 			## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 			## Sort filtered file by chrom, start, stop
-			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+			cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", quote(outtab)]))
 			cmds.append(' '.join(["rm",temp_outfile]))
 	# Set temp output files
 	temp_bed = "temp.bed"
@@ -409,9 +410,9 @@ def xspecies_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", Adir=None, Bdir=None,
 	cmds.append(' '.join([bdtlsPath,"merge -i",temp_bed_sorted,">",temp_bed]))
 	# Write GFF header
 	cmds.append(' '.join(["echo 'Writing GFF' >&2"]))
-	cmds.append(' '.join(["echo $'##gff-version 3\\n#seqid\\tsource\\ttype\\tstart\\tend\\tscore\\tstrand\\tphase\\tattributes' >", outgff]))
+	cmds.append(' '.join(["echo $'##gff-version 3\\n#seqid\\tsource\\ttype\\tstart\\tend\\tscore\\tstrand\\tphase\\tattributes' >", quote(outgff)]))
 	## Filter orphan fragments < xx && Create GFF3 file
-	cmds.append(' '.join(["awk -v minLen="+ str(minLen),"'{ if($3 - $2 >= minLen) print ;}'",temp_bed,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>",outgff]))
+	cmds.append(' '.join(["awk -v minLen="+ str(minLen),"'{ if($3 - $2 >= minLen) print ;}'",temp_bed,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>",quote(outgff)]))
 	return cmds
 
 def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=None, Bdir=None, pairs=None, outtab=None, outgff=None, minIdt=60 , minLen=100 , hspthresh=3000, minCov=3, intraCov=5, AchrmLens=None, reuseTab=False, label="Self_repeats",prefix=None,verbose=False):
@@ -425,10 +426,10 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 			outtab_intra = outtab + "_intra.tab" 
 	if not reuseTab or not os.path.isfile(outtab):
 		# Write alignment out file headers
-		cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab]))
+		cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", quote(outtab)]))
 		if splitSelf:
 			outtab_intra = outtab + "_intra.tab" 
-			cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", outtab_intra]))
+			cmds.append(' '.join(["echo $'#name1\tstrand1\tstart1\tend1\tname2\tstrand2\tstart2+\tend2+\tscore\tidentity' >", quote(outtab_intra)]))
 		# loop writing B to A mapping cmds
 		for A,B in pairs:
 			if A != B or not splitSelf: 
@@ -438,13 +439,13 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				q_name=os.path.splitext(os.path.basename(B))[0]
 				temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
 				# Compose LASTZ command
-				cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+				cmds.append(' '.join([lzpath,quote(t_file),quote(q_file),"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
 				# Scrub % symbols
 				cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
 				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
-				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab]))
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", quote(outtab)]))
 				cmds.append(' '.join(["rm",temp_outfile]))
 			else:
 				# Align to self with diff settings
@@ -454,13 +455,13 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 				q_name=os.path.splitext(os.path.basename(B))[0]
 				temp_outfile= '_'.join(["temp",q_name,"onto",t_name,".tab"])
 				# Compose LASTZ command
-				cmds.append(' '.join([lzpath,t_file,q_file,"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
+				cmds.append(' '.join([lzpath,quote(t_file),quote(q_file),"--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh=" + str(hspthresh),"--output=" + temp_outfile, "--verbosity=" + str(verb)]))
 				# Scrub % symbols
 				cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
 				## Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
 				## New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 				## Sort filtered file by chrom, start, stop
-				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", outtab_intra]))
+				cmds.append(' '.join(["awk '!/^#/ { print; }'",temp_outfile,"| awk -v minLen=" + str(minLen),"'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt=" + str(minIdt),"'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>", quote(outtab_intra)]))
 				cmds.append(' '.join(["rm",temp_outfile]))
 	# Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode) 
 	cmds.append(' '.join(["echo 'Coverage filtering for BETWEEN chromosome hits (or all if not in selfSplit mode)' >&2"]))
@@ -480,9 +481,9 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 	## Merge end-to-end annotations
 	cmds.append(' '.join([bdtlsPath, "merge -i", temp_bed_sorted, ">", temp_bed]))
 	# Initialise coverage GFF file
-	cmds.append(' '.join(["echo $'##gff-version 3\n#seqid\tsource\ttype\tstart\tend\tscore\tstrand\tphase\tattributes' >", outgff]))
+	cmds.append(' '.join(["echo $'##gff-version 3\n#seqid\tsource\ttype\tstart\tend\tscore\tstrand\tphase\tattributes' >", quote(outgff)]))
 	## Filter orphan fragments < xx && Create GFF3 file
-	cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed, "| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", outgff]))
+	cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed, "| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", quote(outgff)]))
 	# Coverage filtering for WITHIN chromosome hits
 	if splitSelf:
 		if reuseTab and not os.path.isfile(outtab_intra) and os.path.isfile(outtab):
@@ -505,6 +506,6 @@ def self_LZ_cmds(lzpath="lastz", bdtlsPath="bedtools", splitSelf=False, Adir=Non
 			## Merge end-to-end annotations
 			cmds.append(' '.join([bdtlsPath, "merge -i", temp_bed_sorted_intra, ">", temp_bed_intra]))
 			## Filter orphan fragments < xx && Create GFF3 file
-			cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed_intra,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "_intra" + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", outgff]))
+			cmds.append(' '.join(["awk -v minLen=" + str(minLen),"'{ if($3 - $2 >= minLen) print ;}'", temp_bed_intra,"| awk -v OFS='\\t' 'BEGIN{i=0}{i++;}{j= sprintf(\"%05d\", i)}{print $1,\"mimeo-self\",\"" + str(label) + "_intra" + "\",$2,$3,\".\",\"+\",\".\",\"ID=" + str(prefix) + "_\"j ;}' >>", quote(outgff)]))
 	# Return cmds list
 	return cmds
