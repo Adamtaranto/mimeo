@@ -276,7 +276,7 @@ def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmat
 	cmds.append(trf_cmd)
 	maskfile = '.'.join(['raw_A_genome_hits.fa',str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
 	cmds.append(' '.join(['mv',maskfile, quote(AlnFasta + '.mask') ]))
-	alnmasked = quote(AlnFasta + '.mask')
+	alnmasked = AlnFasta + '.mask'
 	run_cmd(cmds,verbose=True,keeptemp=False)
 	# Make keeplist
 	keeplist = list()
