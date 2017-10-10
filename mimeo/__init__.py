@@ -271,7 +271,7 @@ def trfFilter(alignDF=None,tempdir=None,adir=None,prefix=None,TRFpath='trf',tmat
 	# Run TRF
 	cmds = list()
 	trf_cmd = ' '.join([str(TRFpath),quote(AlnFasta),str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'-m','-h','-ngs >',quote(AlnFasta + '.dat')])
-	cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
+	#cmds.append(' '.join(["echo 'Run TRF as: ' >&2"]))
 	#cmds.append(' '.join(["echo '" + trf_cmd + "' >&2"]))
 	cmds.append(trf_cmd)
 	maskfile = '.'.join(['raw_A_genome_hits.fa',str(tmatch),str(tmismatch),str(tdelta),str(tPM),str(tPI),str(tminscore),str(tmaxperiod),'mask'])
