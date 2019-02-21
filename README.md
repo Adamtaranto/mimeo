@@ -52,6 +52,12 @@ Requirements:
   * [bedtools](http://bedtools.readthedocs.io/en/latest/content/installation.html)
   * [trf](https://tandem.bu.edu/trf/trf.html)
 
+
+Install from Bioconda:
+```bash
+conda install mimeo
+```
+
 Install from PyPi:
 ```bash
 pip install mimeo
