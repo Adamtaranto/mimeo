@@ -17,7 +17,9 @@ install_requires = [
     'biopython>=1.70',
 ]
 
-desc = """Scan genomes for internally repeated sequences, elements which are repetitive in another species, or high-identity HGT candidate regions between species."""
+desc = """Scan genomes for internally repeated sequences, elements which are \
+repetitive in another species, or high-identity HGT candidate regions between \
+species."""
 
 setup(name='mimeo',
       version='1.1.1',
@@ -28,7 +30,8 @@ setup(name='mimeo',
       license='MIT',
       packages=['mimeo'],
       classifiers=pypi_classifiers,
-      keywords=["Transposon","TE","WGA","LASTZ","Whole genome alignment","repeat","transposition"],
+      keywords=["Transposon", "TE", "WGA", "LASTZ", "Whole genome alignment",
+                "repeat", "transposition"],
       install_requires=install_requires,
       include_package_data=True,
       zip_safe=False,
@@ -39,5 +42,5 @@ setup(name='mimeo',
             'mimeo-map=mimeo.run_map:main',
             'mimeo-filter=mimeo.run_filter:main',
         ],
-    },
-    )
+        },
+      )
