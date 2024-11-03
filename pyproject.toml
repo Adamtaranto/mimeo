@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mimeo"
+description = "Scan genomes for internally repeated sequences, elements which are repetitive in another species, or high-identity HGT candidate regions between species."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Adam Taranto", email = "adam.p.taranto@gmail.com" }
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: MIT License",
+]
+
+dependencies = ["argparse_tui", "biopython>=1.70", "pandas>=0.20.3",]
+
+    
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/adamtaranto/mimeo"
+documentation = "https://github.com/adamtaranto/mimeo"
+repository = "https://github.com/adamtaranto/mimeo"
+
+[project.scripts]
+mimeo-x="mimeo.run_interspecies:main"
+mimeo-self="mimeo.run_self:main"
+mimeo-map="mimeo.run_map:main"
+mimeo-filter="mimeo.run_filter:main"
+
+[tool.hatch.build]
+source = "src"
+
+exclude = [
+    "environment.yml",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.vcs]
+tag-pattern = "v*"  # Git tags starting with 'v' will be used for versioning
+fallback-version = "0.0.0"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/mimeo/_version.py"
+
+[project.optional-dependencies]
+tests = ["pytest"]
