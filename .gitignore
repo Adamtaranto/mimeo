@@ -3,6 +3,12 @@ temp/
 data/
 test/
 
+# Mac stuff
+.DS_Store
+
+# Versioning
+src/mimeo/_version.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
