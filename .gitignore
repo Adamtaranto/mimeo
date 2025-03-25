@@ -2,6 +2,7 @@
 temp/
 data/
 test/
+.ideas/
 
 # Mac stuff
 .DS_Store
