@@ -1,6 +1,7 @@
-import mimeo
 import argparse
 import os
+
+import mimeo
 
 
 def mainArgs():

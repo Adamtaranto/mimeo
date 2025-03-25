@@ -1,8 +1,8 @@
 from collections import Counter
 from datetime import datetime
-from shlex import quote
 import glob
 import os
+from shlex import quote
 import shutil
 import subprocess
 import sys
