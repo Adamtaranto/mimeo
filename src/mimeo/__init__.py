@@ -248,7 +248,7 @@ def missing_tool(tool_name):
 def import_Align(infile=None, prefix=None, minLen=100, minIdt=95):
     """Import LASTZ alignment file to pandas dataframe"""
     hits = list()
-    with open(infile, 'rU') as f:
+    with open(infile, 'r') as f:
         for line in f.readlines():
             li = line.strip()
             if not li.startswith('#'):
