@@ -585,71 +585,160 @@ def writeGFFlines(alnDF=None, chrlens=None, ftype='BHit'):
 
 
 def map_LZ_cmds(
-    lzpath='lastz',
-    pairs=None,
-    minIdt=95,
-    minLen=100,
-    hspthresh=3000,
-    outfile=None,
-    verbose=False,
-):
+    lzpath: str = 'lastz',
+    pairs: list[tuple[str, str]] = None,
+    minIdt: float = 95,
+    minLen: int = 100,
+    hspthresh: int = 3000,
+    outfile: str = None,
+    verbose: bool = False,
+    lastz_format: str = 'general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity',
+    step_size: int = 1,
+    strand_mode: str = 'both',
+    chain: bool = True,
+    gapped: bool = True,
+) -> list[str]:
+    """Generate commands to map high identity segments between genome files using LASTZ.
+
+    This function creates a list of shell commands that identify regions with high sequence
+    identity between pairs of genome files. These regions can represent candidate horizontal
+    gene transfer (HGT) regions. The commands run LASTZ alignments and filter/format the results.
+
+    Parameters
+    ----------
+    lzpath : str, optional
+        Path to LASTZ executable, default is 'lastz'
+    pairs : list of (str, str) tuples, optional
+        List of file path pairs to align. Each tuple contains (target_path, query_path)
+    minIdt : float, optional
+        Minimum percent identity threshold for reported alignments, default is 95
+    minLen : int, optional
+        Minimum alignment length to report (bp), default is 100
+    hspthresh : int, optional
+        High-scoring segment pair threshold for LASTZ sensitivity, default is 3000
+    outfile : str, optional
+        Path where filtered alignments will be written
+    verbose : bool, optional
+        Enable verbose output during alignment, default is False
+    lastz_format : str, optional
+        Format string for LASTZ output fields
+    step_size : int, optional
+        Step size parameter for LASTZ seed generation, default is 1
+    strand_mode : str, optional
+        Strand to align: 'plus', 'minus', or 'both', default is 'both'
+    chain : bool, optional
+        Enable chaining of alignments, default is True
+    gapped : bool, optional
+        Enable gapped extensions, default is True
+
+    Returns
+    -------
+    list of str
+        Shell commands to run LASTZ alignments and process the results
+
+    Notes
+    -----
+    The commands perform the following operations for each genome pair:
+    1. Run LASTZ alignment with specified parameters
+    2. Format output and remove percentage symbols
+    3. Filter alignments by minimum identity and length thresholds
+    4. Sort results by chromosome, start, and end positions
     """
-    Map high identity B segments onto genome A
-    (i.e. candidate HGT regions). Report as GFF.
-    """
-    if verbose:
-        verb = 1
-    else:
-        verb = 0
-    cmds = []
-    # Write header
-    cmds.append(
-        ' '.join(
-            [
-                "echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >",
-                quote(outfile),
-            ]
-        )
+    # Validate required inputs
+    if pairs is None or len(pairs) == 0:
+        raise ValueError('No sequence pairs provided for alignment')
+
+    if outfile is None:
+        raise ValueError('Output file path is required')
+
+    # Determine platform for sed command compatibility
+    import platform
+
+    system = platform.system().lower()
+    if system == 'darwin':  # macOS
+        sed_command = "sed -i '' -e 's/%//g'"
+    else:  # Linux and others
+        sed_command = "sed -i 's/%//g'"
+
+    # Set LASTZ verbosity level
+    verbosity_level = 1 if verbose else 0
+
+    # Build LASTZ core options
+    lastz_options = [
+        '--entropy',
+        f'--format={lastz_format}',
+        '--markend',
+        '--gfextend',
+    ]
+
+    # Add conditional options based on parameters
+    if chain:
+        lastz_options.append('--chain')
+    if gapped:
+        lastz_options.append('--gapped')
+
+    # Add remaining options
+    lastz_options.extend(
+        [f'--step={step_size}', f'--strand={strand_mode}', f'--hspthresh={hspthresh}']
     )
-    for A, B in pairs:
-        t_file = A
-        t_name = os.path.splitext(os.path.basename(A))[0]
-        q_file = B
-        q_name = os.path.splitext(os.path.basename(B))[0]
-        temp_outfile = '_'.join(['temp', q_name, 'onto', t_name, '.tab'])
-        # Compose LASTZ command
-        cmds.append(
-            ' '.join(
-                [
-                    lzpath,
-                    quote(t_file),
-                    quote(q_file),
-                    '--entropy --format=general:name1,strand1,start1,end1,length1,name2,strand2,start2+,end2+,length2,score,identity --markend --gfextend --chain --gapped --step=1 --strand=both --hspthresh='
-                    + str(hspthresh),
-                    '--output=' + temp_outfile,
-                    '--verbosity=' + str(verb),
-                ]
-            )
-        )
-        # Scrub % symbols
-        cmds.append(' '.join(["sed -i '' -e 's/%//g'", temp_outfile]))
-        # Filter Inter_Chrome targets to min len $minLen [100], min identity $minIdt [90]
-        # New Header = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
-        # Sort filtered file by chrom, start, stop
-        cmds.append(
-            ' '.join(
-                [
-                    "awk '!/^#/ { print; }'",
-                    temp_outfile,
-                    '| awk -v minLen=' + str(minLen),
-                    "'0+$5 >= minLen {print ;}' | awk -v OFS='\\t' -v minIdt="
-                    + str(minIdt),
-                    "'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >>",
-                    quote(outfile),
-                ]
-            )
-        )
-        cmds.append(' '.join(['rm', temp_outfile]))
+
+    # Initialize command list
+    cmds = []
+
+    # Write header to output file
+    header_command = (
+        "echo $'#name1\\tstrand1\\tstart1\\tend1\\tname2\\tstrand2\\tstart2+\\tend2+\\tscore\\tidentity' >"
+        f' {quote(outfile)}'
+    )
+    cmds.append(header_command)
+
+    # Process each genome pair
+    # A = target genome
+    # B = query genome
+    # Loop through each pair of genome files
+    # and generate LASTZ commands
+    for target_file, query_file in pairs:
+        # Extract file information for naming temporary files
+        target_name = os.path.splitext(os.path.basename(target_file))[0]
+        query_name = os.path.splitext(os.path.basename(query_file))[0]
+        temp_outfile = f'temp_{query_name}_onto_{target_name}.tab'
+
+        # Compose LASTZ alignment command
+        lastz_cmd = [
+            lzpath,
+            quote(target_file),
+            quote(query_file),
+            ' '.join(lastz_options),
+            f'--output={temp_outfile}',
+            f'--verbosity={verbosity_level}',
+        ]
+        cmds.append(' '.join(lastz_cmd))
+
+        # Remove percentage symbols from identity values
+        cmds.append(f'{sed_command} {temp_outfile}')
+
+        # Filter, format and sort alignment results
+        # 1. Extract non-header lines
+        # 2. Filter by minimum length
+        # 3. Filter by minimum identity
+        # 4. Format into tab-delimited columns
+        # 5. Sort by chromosome, start, and end positions
+        # 6. Append to final output file
+        filter_cmd = [
+            "awk '!/^#/ { print; }'",
+            temp_outfile,
+            f'| awk -v minLen={minLen}',
+            f"'0+$5 >= minLen {{print ;}}'| awk -v OFS='\\t' -v minIdt={minIdt}",
+            "'0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}'",
+            "| sed 's/ //g'",
+            '| sort -k 1,1 -k 3n,4n >>',
+            quote(outfile),
+        ]
+        cmds.append(' '.join(filter_cmd))
+
+        # Remove temporary file
+        cmds.append(f'rm {temp_outfile}')
+
     return cmds
 
 
