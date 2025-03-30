@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 import glob
 import os
 from shlex import quote
@@ -12,20 +12,8 @@ from Bio import SeqIO
 import pandas as pd
 
 
-class Error(Exception):
-    pass
-
-
-def decode(x):
-    try:
-        s = x.decode()
-    except:
-        return x
-    return s
-
-
 def import_pairs(file=None, Adir=None, Bdir=None):
-    pairs = list()
+    pairs = []
     with open(file) as f:
         for line in f:
             li = line.strip()
@@ -36,7 +24,7 @@ def import_pairs(file=None, Adir=None, Bdir=None):
 
 
 def get_all_pairs(Adir=None, Bdir=None):
-    pairs = list()
+    pairs = []
     if Adir and Bdir:
         for A in glob.glob(os.path.join(Adir, '*')):
             for B in glob.glob(os.path.join(Bdir, '*')):
@@ -60,24 +48,87 @@ def _write_script(cmds, script):
     f.close()
 
 
-def syscall(cmd, verbose=False):
-    """Manage error handling when making syscalls"""
+def syscall(
+    cmd: str | list,
+    verbose: bool = False,
+    timeout: float | None = None,
+    encoding: str = 'utf-8',
+    shell: bool = True,
+) -> str:
+    """Execute a system command with comprehensive error handling.
+
+    This function provides a standardized way to run shell commands while capturing
+    output and handling errors consistently. It wraps subprocess.check_output with
+    additional error reporting and output management.
+
+    Parameters
+    ----------
+    cmd : str or list
+        Command to execute as string or list of arguments. When shell=True (default),
+        this should be a string. When shell=False, this should be a list of strings.
+    verbose : bool, optional
+        If True, prints the command before execution and its output after completion.
+        Default is False.
+    timeout : float or None, optional
+        Maximum time in seconds for the command to complete before raising a timeout error.
+        Default is None (no timeout).
+    encoding : str, optional
+        Character encoding to use when decoding command output. Default is 'utf-8'.
+    shell : bool, optional
+        If True, execute command through the system shell. This allows features like
+        pipes and redirection but poses security risks with untrusted input. Default is True.
+
+    Returns
+    -------
+    str
+        Decoded command output as string.
+
+    Raises
+    ------
+    RuntimeError
+        If the command returns a non-zero exit code, with details about the failure.
+    TimeoutExpired
+        If the command execution exceeds the specified timeout.
+    """
+    # Display the command if in verbose mode
     if verbose:
         print('Running command:', cmd, flush=True)
+
     try:
-        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        # Execute the command and capture output (including stderr)
+        output = subprocess.check_output(
+            cmd,
+            shell=shell,
+            stderr=subprocess.STDOUT,  # Merge stderr into stdout
+            timeout=timeout,
+        )
+
+        # Decode the binary output using the specified encoding
+        decoded_output = output.decode(encoding)
+
+        # Display command output if in verbose mode
+        if verbose:
+            print(decoded_output, flush=True)
+
+        return decoded_output
+
     except subprocess.CalledProcessError as error:
+        # Handle command execution failures (non-zero exit codes)
+        # Print error information to stderr for immediate feedback
         print(
             'The following command failed with exit code',
             error.returncode,
             file=sys.stderr,
+            flush=True,
         )
-        print(cmd, file=sys.stderr)
-        print('\nThe output was:\n', file=sys.stderr)
-        print(error.output.decode(), file=sys.stderr)
-        raise Error('Error running command:', cmd)
-    if verbose:
-        print(decode(output))
+        print(cmd, file=sys.stderr, flush=True)
+        print('\nThe output was:\n', file=sys.stderr, flush=True)
+        print(error.output.decode(encoding), file=sys.stderr, flush=True)
+
+        # Re-raise as RuntimeError with detailed message while preserving the original error chain
+        raise RuntimeError(
+            f'Error running command (exit code {error.returncode}): {cmd}'
+        ) from error
 
 
 def run_cmd(cmds, verbose=False, keeptemp=False):
@@ -95,13 +146,13 @@ def run_cmd(cmds, verbose=False, keeptemp=False):
 
 def getTimestring():
     """Return int only string of current datetime with milliseconds."""
-    (dt, micro) = datetime.utcnow().strftime('%Y%m%d%H%M%S.%f').split('.')
-    dt = '%s%03d' % (dt, int(micro) / 1000)
+    (dt, micro) = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S.%f').split('.')
+    dt = '%s%03d' % (dt, int(micro) // 1000)
     return dt
 
 
 def splitFasta(infile, outdir, unique=True):
-    seen = list()
+    seen = []
     for rec in SeqIO.parse(infile, 'fasta'):
         if str(rec.id) in seen and unique:
             print('Non-unique name in genome: %s. Quitting.' % str(rec.id))
@@ -215,7 +266,7 @@ def checkUniqueID(records):
 
 def chromlens(seqDir=None, outfile=None):
     """Get chrom lens from fasta dir"""
-    records = list()
+    records = []
     for f in glob.glob(os.path.join(seqDir, '*')):
         records += list(SeqIO.parse(f, 'fasta'))
     # Check records exist
@@ -225,7 +276,7 @@ def chromlens(seqDir=None, outfile=None):
     # Check names are unique
     checkUniqueID(records)
     # Make list
-    chrlens = list()
+    chrlens = []
     for rec in records:
         chrlens.append((str(rec.id), str(len(rec.seq))))
     # Sort list
@@ -247,7 +298,7 @@ def missing_tool(tool_name):
 
 def import_Align(infile=None, prefix=None, minLen=100, minIdt=95):
     """Import LASTZ alignment file to pandas dataframe"""
-    hits = list()
+    hits = []
     with open(infile, 'r') as f:
         for line in f.readlines():
             li = line.strip()
@@ -307,19 +358,19 @@ def trfFilter(
 ):
     alignDF['UID'] = 'TEMPID_' + alignDF.index.astype(str)
     # Reconstitute A-genome fasta from split dir
-    seqMaster = dict()
+    seqMaster = {}
     for A in glob.glob(os.path.join(adir, '*')):
         for rec in SeqIO.parse(A, 'fasta'):
             seqMaster[rec.id] = rec
     # Write aligned segments
     AlnFasta = os.path.join(tempdir, 'raw_A_genome_hits.fa')
     with open(AlnFasta, 'w') as handle:
-        for index, row in alignDF.iterrows():
+        for _index, row in alignDF.iterrows():
             rec = seqMaster[row['tName']][int(row['tStart']) : int(row['tEnd'])]
             rec.id = row['UID']
             SeqIO.write(rec, handle, 'fasta')
     # Run TRF
-    cmds = list()
+    cmds = []
     trf_cmd = ' '.join(
         [
             str(TRFpath),
@@ -357,7 +408,7 @@ def trfFilter(
     alnmasked = AlnFasta + '.mask'
     run_cmd(cmds, verbose=True, keeptemp=False)
     # Make keeplist
-    keeplist = list()
+    keeplist = []
     for rec in SeqIO.parse(alnmasked, 'fasta'):
         if rec.seq.count('N') / len(rec.seq) * 100 < float(maxtandem):
             keeplist.append(rec.id)
@@ -396,7 +447,7 @@ def trfFasta(
     keeptemp=False,
 ):
     # Run TRF
-    cmds = list()
+    cmds = []
     trf_cmd = ' '.join(
         [
             str(TRFpath),
@@ -434,7 +485,7 @@ def trfFasta(
     masked = fasta + '.mask'
     run_cmd(cmds, verbose=True, keeptemp=False)
     # Make keeplist
-    keeplist = list()
+    keeplist = []
     for rec in SeqIO.parse(masked, 'fasta'):
         if rec.seq.count('N') / len(rec.seq) * 100 < float(maxtandem):
             keeplist.append(rec.id)
@@ -465,7 +516,7 @@ def writetrf(alignDF=None, outtab=None):
                 ]
             )
         )
-        for index, row in alignDF.iterrows():
+        for _index, row in alignDF.iterrows():
             handle.write(
                 '\t'.join(
                     [
@@ -503,7 +554,7 @@ def writeGFFlines(alnDF=None, chrlens=None, ftype='BHit'):
             'attributes' + '\n',
         ]
     )
-    for index, row in alnDF.iterrows():
+    for _index, row in alnDF.iterrows():
         attributes = ';'.join(
             [
                 'ID=' + row['UID'],
@@ -628,7 +679,7 @@ def xspecies_LZ_cmds(
         verb = 1
     else:
         verb = 0
-    cmds = list()
+    cmds = []
     if not reuseTab or not os.path.isfile(outtab):
         cmds.append(
             ' '.join(
@@ -773,7 +824,7 @@ def self_LZ_cmds(
         verb = 1
     else:
         verb = 0
-    cmds = list()
+    cmds = []
     if splitSelf:
         outtab_intra = outtab + '_intra.tab'
     if not reuseTab or not os.path.isfile(outtab):
