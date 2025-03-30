@@ -1,74 +1,75 @@
-import mimeo
 import argparse
 import os
+
+import mimeo
 
 
 def mainArgs():
     parser = argparse.ArgumentParser(
-        description="Filter SSR containing sequences from fasta library of repeats.",
-        prog="mimeo-filter",
+        description='Filter SSR containing sequences from fasta library of repeats.',
+        prog='mimeo-filter',
     )
     # Input options
     parser.add_argument(
-        "--infile",
+        '--infile',
         type=str,
         required=True,
-        help="Name of directory containing sequences from A genome.",
+        help='Name of directory containing sequences from A genome.',
     )
     # Output options
     parser.add_argument(
-        "-d",
-        "--outdir",
+        '-d',
+        '--outdir',
         type=str,
         default=None,
-        help="Write output files to this directory. (Default: cwd)",
+        help='Write output files to this directory. (Default: cwd)',
     )
     parser.add_argument(
-        "--outfile", type=str, default=None, help="Name of alignment result file."
+        '--outfile', type=str, default=None, help='Name of alignment result file.'
     )
     parser.add_argument(
-        "--keeptemp",
-        action="store_true",
+        '--keeptemp',
+        action='store_true',
         default=False,
-        help="If set do not remove temp files.",
+        help='If set do not remove temp files.',
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
+        '--verbose',
+        action='store_true',
         default=False,
-        help="If set report LASTZ progress.",
+        help='If set report LASTZ progress.',
     )
     # TRF filtering
     parser.add_argument(
-        "--TRFpath",
+        '--TRFpath',
         type=str,
-        default="trf",
-        help="Custom path to TRF executable if not in $PATH.",
+        default='trf',
+        help='Custom path to TRF executable if not in $PATH.',
     )
-    parser.add_argument("--tmatch", type=int, default=2, help="TRF matching weight")
+    parser.add_argument('--tmatch', type=int, default=2, help='TRF matching weight')
     parser.add_argument(
-        "--tmismatch", type=int, default=7, help="TRF mismatching penalty"
+        '--tmismatch', type=int, default=7, help='TRF mismatching penalty'
     )
-    parser.add_argument("--tdelta", type=int, default=7, help="TRF indel penalty")
-    parser.add_argument("--tPM", type=int, default=80, help="TRF match probability")
-    parser.add_argument("--tPI", type=int, default=10, help="TRF indel probability")
+    parser.add_argument('--tdelta', type=int, default=7, help='TRF indel penalty')
+    parser.add_argument('--tPM', type=int, default=80, help='TRF match probability')
+    parser.add_argument('--tPI', type=int, default=10, help='TRF indel probability')
     parser.add_argument(
-        "--tminscore",
+        '--tminscore',
         type=int,
         default=50,
-        help="TRF minimum alignment score to report",
+        help='TRF minimum alignment score to report',
     )
     parser.add_argument(
-        "--tmaxperiod",
+        '--tmaxperiod',
         type=int,
         default=50,
-        help="TRF maximum period size to report. Note: Setting this score too high may exclude some LTR retrotransposons. Optimal len to exclude only SSRs is 10-50bp.",
+        help='TRF maximum period size to report. Note: Setting this score too high may exclude some LTR retrotransposons. Optimal len to exclude only SSRs is 10-50bp.',
     )
     parser.add_argument(
-        "--maxtandem",
+        '--maxtandem',
         type=float,
         default=40,
-        help="Max percentage of a sequence which may be masked by TRF. If exceeded, element will be discarded.",
+        help='Max percentage of a sequence which may be masked by TRF. If exceeded, element will be discarded.',
     )
     args = parser.parse_args()
     return args
@@ -84,13 +85,13 @@ def main():
         missing_tools += mimeo.missing_tool(tool)
     if missing_tools:
         print(
-            "WARNING: Some tools required by mimeo could not be found: "
-            + ", ".join(missing_tools)
+            'WARNING: Some tools required by mimeo could not be found: '
+            + ', '.join(missing_tools)
         )
-        print("You may need to install them to use all features.")
+        print('You may need to install them to use all features.')
     # Set outfile path
     if not args.outfile:
-        outname = os.path.splitext(os.path.basename(args.infile))[0] + "_filtered.fa"
+        outname = os.path.splitext(os.path.basename(args.infile))[0] + '_filtered.fa'
     else:
         outname = args.outfile
     if args.outdir:
@@ -115,4 +116,4 @@ def main():
         verbose=args.verbose,
         keeptemp=args.keeptemp,
     )
-    print("Finished!")
+    print('Finished!')

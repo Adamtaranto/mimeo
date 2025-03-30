@@ -1,134 +1,135 @@
 import argparse
-import mimeo
 import os
 import shutil
 import sys
 
+import mimeo
+
 
 def mainArgs():
     parser = argparse.ArgumentParser(
-        description="Find all high-identity segments shared between genomes.",
-        prog="mimeo-map",
+        description='Find all high-identity segments shared between genomes.',
+        prog='mimeo-map',
     )
     # Input options
     parser.add_argument(
-        "--adir",
+        '--adir',
         type=str,
         default=None,
-        help="Name of directory containing sequences from A genome.",
+        help='Name of directory containing sequences from A genome.',
     )
     parser.add_argument(
-        "--bdir",
+        '--bdir',
         type=str,
         default=None,
-        help="Name of directory containing sequences from B genome.",
+        help='Name of directory containing sequences from B genome.',
     )
     parser.add_argument(
-        "--afasta", type=str, default=None, help="A genome as multifasta."
+        '--afasta', type=str, default=None, help='A genome as multifasta.'
     )
     parser.add_argument(
-        "--bfasta", type=str, default=None, help="B genome as multifasta."
+        '--bfasta', type=str, default=None, help='B genome as multifasta.'
     )
     parser.add_argument(
-        "-r",
-        "--recycle",
-        action="store_true",
+        '-r',
+        '--recycle',
+        action='store_true',
         help='Use existing alignment "--outfile" if found.',
     )
     # Output options
     parser.add_argument(
-        "-d",
-        "--outdir",
+        '-d',
+        '--outdir',
         type=str,
         default=None,
-        help="Write output files to this directory. (Default: cwd)",
+        help='Write output files to this directory. (Default: cwd)',
     )
     parser.add_argument(
-        "--gffout",
+        '--gffout',
         type=str,
         default=None,
-        help="Name of GFF3 annotation file. If not set, suppress output.",
+        help='Name of GFF3 annotation file. If not set, suppress output.',
     )
     parser.add_argument(
-        "--outfile",
+        '--outfile',
         type=str,
-        default="mimeo_alignment.tab",
-        help="Name of alignment result file.",
+        default='mimeo_alignment.tab',
+        help='Name of alignment result file.',
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
+        '--verbose',
+        action='store_true',
         default=False,
-        help="If set report LASTZ progress.",
+        help='If set report LASTZ progress.',
     )
     parser.add_argument(
-        "--label", type=str, default="BHit", help="Set annotation TYPE field in gff."
+        '--label', type=str, default='BHit', help='Set annotation TYPE field in gff.'
     )
     parser.add_argument(
-        "--prefix",
+        '--prefix',
         type=str,
-        default="BHit",
-        help="ID prefix for B-genome hits annotated in A-genome.",
+        default='BHit',
+        help='ID prefix for B-genome hits annotated in A-genome.',
     )
     parser.add_argument(
-        "--keeptemp",
-        action="store_true",
+        '--keeptemp',
+        action='store_true',
         default=False,
-        help="If set do not remove temp files.",
+        help='If set do not remove temp files.',
     )
     # Alignment options
     parser.add_argument(
-        "--lzpath",
+        '--lzpath',
         type=str,
-        default="lastz",
-        help="Custom path to LASTZ executable if not in $PATH.",
+        default='lastz',
+        help='Custom path to LASTZ executable if not in $PATH.',
     )
     parser.add_argument(
-        "--minIdt", type=int, default=60, help="Minimum alignment identity to report."
+        '--minIdt', type=int, default=60, help='Minimum alignment identity to report.'
     )
     parser.add_argument(
-        "--minLen", type=int, default=100, help="Minimum alignment length to report."
+        '--minLen', type=int, default=100, help='Minimum alignment length to report.'
     )
     parser.add_argument(
-        "--hspthresh",
+        '--hspthresh',
         type=int,
         default=3000,
-        help="Set HSP min score threshold for LASTZ.",
+        help='Set HSP min score threshold for LASTZ.',
     )
     # TRF filtering
     parser.add_argument(
-        "--TRFpath",
+        '--TRFpath',
         type=str,
-        default="trf",
-        help="Custom path to TRF executable if not in $PATH.",
+        default='trf',
+        help='Custom path to TRF executable if not in $PATH.',
     )
-    parser.add_argument("--tmatch", type=int, default=2, help="TRF matching weight")
+    parser.add_argument('--tmatch', type=int, default=2, help='TRF matching weight')
     parser.add_argument(
-        "--tmismatch", type=int, default=7, help="TRF mismatching penalty"
+        '--tmismatch', type=int, default=7, help='TRF mismatching penalty'
     )
-    parser.add_argument("--tdelta", type=int, default=7, help="TRF indel penalty")
-    parser.add_argument("--tPM", type=int, default=80, help="TRF match probability")
-    parser.add_argument("--tPI", type=int, default=10, help="TRF indel probability")
+    parser.add_argument('--tdelta', type=int, default=7, help='TRF indel penalty')
+    parser.add_argument('--tPM', type=int, default=80, help='TRF match probability')
+    parser.add_argument('--tPI', type=int, default=10, help='TRF indel probability')
     parser.add_argument(
-        "--tminscore",
+        '--tminscore',
         type=int,
         default=50,
-        help="TRF minimum alignment score to report",
+        help='TRF minimum alignment score to report',
     )
     parser.add_argument(
-        "--tmaxperiod", type=int, default=50, help="TRF maximum period size to report"
+        '--tmaxperiod', type=int, default=50, help='TRF maximum period size to report'
     )
     parser.add_argument(
-        "--maxtandem",
+        '--maxtandem',
         type=float,
         default=None,
-        help="Max percentage of an A-genome alignment which may be masked by TRF. If exceeded, alignment will be discarded.",
+        help='Max percentage of an A-genome alignment which may be masked by TRF. If exceeded, alignment will be discarded.',
     )
     parser.add_argument(
-        "--writeTRF",
-        action="store_true",
+        '--writeTRF',
+        action='store_true',
         default=False,
-        help="If set write TRF filtered alignment file for use with other mimeo modules.",
+        help='If set write TRF filtered alignment file for use with other mimeo modules.',
     )
     args = parser.parse_args()
     return args
@@ -144,10 +145,10 @@ def main():
         missing_tools += mimeo.missing_tool(tool)
     if missing_tools:
         print(
-            "WARNING: Some tools required by mimeo could not be found: "
-            + ", ".join(missing_tools)
+            'WARNING: Some tools required by mimeo could not be found: '
+            + ', '.join(missing_tools)
         )
-        print("You may need to install them to use all features.")
+        print('You may need to install them to use all features.')
     # Set output paths
     adir_path, bdir_path, outdir, outtab, gffout, tempdir = mimeo.set_paths(
         adir=args.adir,
@@ -167,8 +168,8 @@ def main():
     if not args.recycle or not os.path.isfile(outtab):
         if not pairs:
             print(
-                "No files to align. Check --adir and --bdir contain \
-                  at least one fasta each."
+                'No files to align. Check --adir and --bdir contain \
+                  at least one fasta each.'
             )
             sys.exit(1)
         # Compose alignment commands
@@ -208,11 +209,11 @@ def main():
             mimeo.writetrf(alignDF=alignments, outtab=outtab)
     # Write to GFF3
     if gffout:
-        with open(gffout, "w") as f:
+        with open(gffout, 'w') as f:
             for x in mimeo.writeGFFlines(
                 alnDF=alignments, chrlens=chrLens, ftype=args.label
             ):
                 f.write(x)
     if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
         shutil.rmtree(tempdir)
-    print("Finished!")
+    print('Finished!')

@@ -1,76 +1,79 @@
 # Mimeo
 
-# Table of contents
+## Table of contents
 
 * [Modules](#modules)
 * [Installing Mimeo](#installing-mimeo)
 * [Example usage](#example-usage)
 * [Standard options](#standard-options)
-  *  [mimeo-self](#mimeo-self)
-  *  [mimeo-x](#mimeo-x)
-  *  [mimeo-map](#mimeo-map)
-  *  [mimeo-filter](#mimeo-filter)
+  * [mimeo-self](#mimeo-self)
+  * [mimeo-x](#mimeo-x)
+  * [mimeo-map](#mimeo-map)
+  * [mimeo-filter](#mimeo-filter)
 * [Alternative alignment engines](#importing-alignments)
 * [License](#license)
 
-# Modules
+## Modules
 
 Mimeo comprises three tools for parsing repeats from whole-genome alignments:
 
-## mimeo-self  
+### mimeo-self  
 
 **Internal repeat finder.** Mimeo-self aligns a genome to itself and extracts high-identity segments above
 a coverage threshold. This method is less sensitive to disruption by indels and repeat-directed point mutations than
 kmer-based methods such as RepeatScout. Reported annotations indicate overlapping segments above the coverage threshold,
 mimeo-self does not attempt to separate nested repeats. Use this tool to identify candidate repeat regions for curated annotation.
 
-## mimeo-x  
+### mimeo-x  
 
 **Cross-species repeat finder.** A newly acquired or low-copy transposon may slip past copy-number based annotation tools. Mimeo-x searches for features which are abundant in an external reference genome, allowing for
 annotation of complete elements as they occur in a horizontal-transfer donor species, or of conserved coding segments
 of related transposon families.
 
-## mimeo-map  
+### mimeo-map  
 
 **Find all high-identity segments shared between genomes.** Mimeo-map identifies candidate horizontally
 transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned segments correspond to directly homologous sequences and internally repetitive features.  
 
-
 Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
 unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for coverage breakpoints corresponding to nested transposons with differing abundances across the genome.  
 
-## mimeo-filter
+### mimeo-filter
 
 An additional tool **mimeo-filter** is now included to allow post-filtering of SSR-rich sequences from FASTA formatted
 candidate-repeat libraries.  
 
+## Installing Mimeo
 
-# Installing Mimeo
+Requirements:
 
-Requirements: 
-  * [LASTZ](http://www.bx.psu.edu/~rsharris/lastz/) genome alignment tool from the Miller Lab, Penn State.
-  * [bedtools](http://bedtools.readthedocs.io/en/latest/content/installation.html)
-  * [trf](https://tandem.bu.edu/trf/trf.html)
-
+* [LASTZ](http://www.bx.psu.edu/~rsharris/lastz/) genome alignment tool from the Miller Lab, Penn State.
+* [bedtools](http://bedtools.readthedocs.io/en/latest/content/installation.html)
+* [trf](https://tandem.bu.edu/trf/trf.html)
 
 Install from Bioconda:
+
 ```bash
 conda install mimeo
 ```
 
 Install from PyPi:
+
 ```bash
 pip install mimeo
 ```
 
 Clone and install from this repository:
+
 ```bash
-git clone https://github.com/Adamtaranto/mimeo.git && cd mimeo && pip install -e .
+git clone https://github.com/Adamtaranto/mimeo.git && cd mimeo
+
+pip install -e '.[dev]'
 ```
 
-# Example usage 
+## Example usage
 
-### mimeo-self
+### Demo: mimeo-self
 
 Annotate features in genome A which are > 100bp and occur with >=
 80% identity at least 3 times on other scaffolds OR at least 4 times
@@ -83,12 +86,13 @@ mimeo-self --adir data/A_genome_Split --afasta data/A_genome.fasta \
 --minLen 100 --minCov 3 --intraCov 4 --strictSelf
 ```
 
-Output: 
-  - MS_outdir/A_genome_Inter3_Intra4_id80_len_100.gff3
-  - MS_outdir/A_genome_Self_Align.tab
-  - data/A_genome_Split/*.fa
+Output:
 
-### mimeo-x
+* MS_outdir/A_genome_Inter3_Intra4_id80_len_100.gff3
+* MS_outdir/A_genome_Self_Align.tab
+* data/A_genome_Split/*.fa
+
+### Demo: mimeo-x
 
 Annotate features in genome A which are > 100bp and occur with >=
 80% identity at least 5 times in genome B.
@@ -99,11 +103,12 @@ mimeo-x --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 --label B_Rep5 --prefix B_Rep5 --minIdt 80 --minLen 100 --minCov 5
 ```
 
-Output: 
-  - MX_outdir/B_Rep5_in_A.gff3
-  - MX_outdir/B_Reps_in_A_id80_len100.tab
+Output:
 
-### mimeo-map
+* MX_outdir/B_Rep5_in_A.gff3
+* MX_outdir/B_Reps_in_A_id80_len100.tab
+
+### Demo: mimeo-map
 
 Annotate features in genome A which are > 100bp and occur with >=
 90% identity in genome B. No coverage filter, all alignments are reported.
@@ -114,9 +119,10 @@ mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 --label B_90 --prefix B_90 --minIdt 90 --minLen 100 
 ```
 
-Output: 
-  - MM_outdir/B_in_A_id90.gff3
-  - MM_outdir/B_in_A_id90.tab
+Output:
+
+* MM_outdir/B_in_A_id90.gff3
+* MM_outdir/B_in_A_id90.tab
 
 ### mimeo-map + SSR filter
 
@@ -133,11 +139,12 @@ mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 --recycle --maxtandem 40 --writeTRF
 ```
 
-Output: 
-  - MM_outdir/B_in_A_id98_maxSSR40.gff3
-  - MM_outdir/B_in_A_id98.tab.trf
+Output:
 
-### mimeo-filter
+* MM_outdir/B_in_A_id98_maxSSR40.gff3
+* MM_outdir/B_in_A_id98.tab.trf
+
+### Demo: mimeo-filter
 
 Filter sequences comprised of >= 40% short tandem repeats from a multifasta
 library of candidate transposons.
@@ -147,14 +154,14 @@ mimeo-filter --infile data/candidate_TEs.fa
 ```
 
 Output:
-  - candidate_TEs_filtered.fa
 
+* candidate_TEs_filtered.fa
 
-# Standard options
+## Standard options
 
 ### mimeo-self
 
-```
+```code
 Usage: mimeo-self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
                   [--gffout GFFOUT] [--outfile OUTFILE] [--verbose]
                   [--label LABEL] [--prefix PREFIX] [--lzpath LZPATH]
@@ -197,7 +204,7 @@ Optional arguments:
 
 ### mimeo-x
 
-```
+```code
 Usage: mimeo-x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                [--outfile OUTFILE] [--verbose] [--label LABEL]
@@ -232,7 +239,7 @@ Optional arguments:
 
 ### mimeo-map
 
-```
+```code
 Usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                  [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                  [--outfile OUTFILE] [--verbose] [--label LABEL]
@@ -278,10 +285,9 @@ Optional arguments:
                   other mimeo modules.
 ```
 
-
 ### mimeo-filter
 
-```
+```code
 Usage: mimeo-filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
                     [--keeptemp] [--verbose] [--TRFpath TRFPATH]
                     [--tmatch TMATCH] [--tmismatch TMISMATCH]
@@ -313,13 +319,12 @@ Optional arguments:
 
 ```
 
-
-# Importing alignments
+## Importing alignments
 
 Whole genome alignments generated by alternative tools (i.e. BLAT) can be provided to any of the Mimeo modules
 as a tab-delimited file with the columns:
 
-```
+```code
 [1]   name1     = Name of target sequence in genome A
 [2]   strand1   = Strand of alignment in target sequence
 [3]   start1    = 5-prime position of alignment in target (lower value irrespective of strand)
@@ -334,6 +339,6 @@ as a tab-delimited file with the columns:
 
 File should be sorted by columns 1,3,4
 
-# License
+## License
 
 Software provided under MIT license.
