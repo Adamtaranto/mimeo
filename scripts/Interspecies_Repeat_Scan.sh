@@ -7,7 +7,7 @@ echo "Screen genome A (target) for features which are high copy in genome B (que
 ##./Interspecies_Repeat_Scan -z /usr/local/bin/lastz -t target_split -q query_split -i 60 -p query2target_60 -l 100 -d outdir -c 5 -L chromlens.txt -r
 
 # Reset OPT index to 1
-OPTIND=1         
+OPTIND=1
 
 # Initialize our own variables:
 minIdt="60"
@@ -60,10 +60,10 @@ while getopts "d:p:t:q:i:l:z:c:L:rs" opt; do #Options followed by ":" expect an 
 			exit 1
 		fi
 		;;
-	s)	skipSelf=1 
+	s)	skipSelf=1
 		echo "Ignoring any sequence pairs with same name." >&2
 		;;
-	r)	recycleTAB=1 
+	r)	recycleTAB=1
 		echo "Use existing alignment data if found." >&2
 		;;
 	c)	coverage=$OPTARG
