@@ -9,8 +9,8 @@ dependencies:
   - trf
   - pip
   - pip:
-      - argparse_tui
       - biopython
       - pandas
       - hatch
       - pytest
+      - pytest-cov

@@ -1,13 +1,55 @@
+"""
+Simple Sequence Repeat (SSR) filtering for sequence libraries.
+
+This module provides command-line functionality for identifying and removing
+sequences that contain an excessive proportion of tandem repeats from FASTA files.
+It is particularly useful for cleaning repeat libraries of SSR-contaminated entries
+before downstream analyses.
+
+The tool can:
+1. Process FASTA files containing genomic sequences or repeat libraries
+2. Identify tandem repeats using the Tandem Repeats Finder (TRF) tool
+3. Filter out sequences where the repeat content exceeds a specified threshold
+4. Output a cleaned FASTA file containing only non-SSR-dominated sequences
+
+This is part of the mimeo package for genomic sequence analysis.
+"""
+
 import argparse
+import logging
 import os
+import sys
+from typing import List
 
-import mimeo
+from ._version import __version__
+from .logs import init_logging
+from .utils import missing_tool
+from .wrappers import trfFasta
 
 
-def mainArgs():
+def mainArgs() -> argparse.Namespace:
+    """
+    Parse command-line arguments for the mimeo-filter tool.
+
+    Sets up the argument parser with options for input files, output locations,
+    and Tandem Repeats Finder (TRF) parameters for identifying and filtering
+    sequences with excessive simple sequence repeats.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description='Filter SSR containing sequences from fasta library of repeats.',
         prog='mimeo-filter',
+    )
+    # Add version information
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {__version__}',
+        help='Show program version and exit.',
     )
     # Input options
     parser.add_argument(
@@ -75,33 +117,60 @@ def mainArgs():
     return args
 
 
-def main():
-    # Get cmd line args
+def main() -> None:
+    """
+    Execute the main sequence filtering workflow.
+
+    This function:
+    1. Validates the required external TRF tool
+    2. Sets up output paths
+    3. Processes the input FASTA file using TRF to identify tandem repeats
+    4. Filters out sequences where tandem repeat content exceeds the threshold
+    5. Writes the filtered sequences to the output file
+
+    Returns
+    -------
+    None
+        Function does not return any value. It writes the filtered sequences
+        to the specified output file.
+    """
+    # Get command line arguments
     args = mainArgs()
-    # Check for required programs.
-    tools = [args.TRFpath]
-    missing_tools = []
+
+    # Check for required external programs
+    tools: List[str] = [args.TRFpath]
+    missing_tools: List[str] = []
     for tool in tools:
-        missing_tools += mimeo.missing_tool(tool)
+        missing_tools += missing_tool(tool)
     if missing_tools:
         print(
             'WARNING: Some tools required by mimeo could not be found: '
-            + ', '.join(missing_tools)
+            + ', '.join(missing_tools),
+            file=sys.stderr,
         )
-        print('You may need to install them to use all features.')
-    # Set outfile path
+        print('You may need to install them to use all features.', file=sys.stderr)
+
+    # Initialize logging
+    init_logging(loglevel='DEBUG')
+
+    # Determine output file path
     if not args.outfile:
+        # If no output filename specified, create one based on input filename
         outname = os.path.splitext(os.path.basename(args.infile))[0] + '_filtered.fa'
     else:
         outname = args.outfile
+
+    # Set full output path, either in specified directory or current working directory
     if args.outdir:
         outfile = os.path.join(os.path.abspath(args.outdir), outname)
     else:
         outfile = os.path.join(os.getcwd(), outname)
-    # Set abs path to element library
+
+    # Convert input file path to absolute path
     infile = os.path.abspath(args.infile)
-    # Run filter
-    mimeo.trfFasta(
+
+    # Run the TRF-based filtering process
+    trfFasta(
         fasta=infile,
         outfile=outfile,
         TRFpath=args.TRFpath,
@@ -116,4 +185,5 @@ def main():
         verbose=args.verbose,
         keeptemp=args.keeptemp,
     )
-    print('Finished!')
+
+    logging.info('Finished!')

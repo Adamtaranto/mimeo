@@ -1,82 +1,6 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/mimeo.svg)](https://badge.fury.io/py/mimeo)
+# Mimeo command line tutorial
 
-# Mimeo
-
-## Table of contents
-
-* [Modules](#modules)
-* [Installing Mimeo](#installing-mimeo)
-* [Example usage](#example-usage)
-* [Standard options](#standard-options)
-  * [mimeo-self](#mimeo-self)
-  * [mimeo-x](#mimeo-x)
-  * [mimeo-map](#mimeo-map)
-  * [mimeo-filter](#mimeo-filter)
-* [Alternative alignment engines](#importing-alignments)
-* [License](#license)
-
-## Modules
-
-Mimeo comprises three tools for parsing repeats from whole-genome alignments:
-
-### mimeo-self
-
-**Internal repeat finder.** Mimeo-self aligns a genome to itself and extracts high-identity segments above
-a coverage threshold. This method is less sensitive to disruption by indels and repeat-directed point mutations than
-kmer-based methods such as RepeatScout. Reported annotations indicate overlapping segments above the coverage threshold,
-mimeo-self does not attempt to separate nested repeats. Use this tool to identify candidate repeat regions for curated annotation.
-
-### mimeo-x
-
-**Cross-species repeat finder.** A newly acquired or low-copy transposon may slip past copy-number based annotation tools. Mimeo-x searches for features which are abundant in an external reference genome, allowing for
-annotation of complete elements as they occur in a horizontal-transfer donor species, or of conserved coding segments
-of related transposon families.
-
-### mimeo-map
-
-**Find all high-identity segments shared between genomes.** Mimeo-map identifies candidate horizontally
-transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned segments correspond to directly homologous sequences and internally repetitive features.
-
-Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
-unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for coverage breakpoints corresponding to nested transposons with differing abundances across the genome.
-
-### mimeo-filter
-
-An additional tool **mimeo-filter** is now included to allow post-filtering of SSR-rich sequences from FASTA formatted
-candidate-repeat libraries.
-
-## Installing Mimeo
-
-Requirements:
-
-* [LASTZ](http://www.bx.psu.edu/~rsharris/lastz/) genome alignment tool from the Miller Lab, Penn State.
-* [bedtools](http://bedtools.readthedocs.io/en/latest/content/installation.html)
-* [trf](https://tandem.bu.edu/trf/trf.html)
-
-Install from Bioconda:
-
-```bash
-conda install mimeo
-```
-
-Install from PyPi:
-
-```bash
-pip install mimeo
-```
-
-Clone and install from this repository:
-
-```bash
-git clone https://github.com/Adamtaranto/mimeo.git && cd mimeo
-
-pip install -e '.[dev]'
-```
-
-## Example usage
-
-### Demo: mimeo-self
+## Demo: mimeo-self
 
 Annotate features in genome A which are > 100bp and occur with >=
 80% identity at least 3 times on other scaffolds OR at least 4 times
@@ -95,7 +19,7 @@ Output:
 * MS_outdir/A_genome_Self_Align.tab
 * data/A_genome_Split/*.fa
 
-### Demo: mimeo-x
+## Demo: mimeo-x
 
 Annotate features in genome A which are > 100bp and occur with >=
 80% identity at least 5 times in genome B.
@@ -111,7 +35,7 @@ Output:
 * MX_outdir/B_Rep5_in_A.gff3
 * MX_outdir/B_Reps_in_A_id80_len100.tab
 
-### Demo: mimeo-map
+## Demo: mimeo-map
 
 Annotate features in genome A which are > 100bp and occur with >=
 90% identity in genome B. No coverage filter, all alignments are reported.
@@ -127,7 +51,7 @@ Output:
 * MM_outdir/B_in_A_id90.gff3
 * MM_outdir/B_in_A_id90.tab
 
-### mimeo-map + SSR filter
+## mimeo-map + SSR filter
 
 Annotate features in genome A which are > 100bp and occur with >=
 98% identity in genome B. Reuse B to A-genome alignment from the previous run.
@@ -147,7 +71,7 @@ Output:
 * MM_outdir/B_in_A_id98_maxSSR40.gff3
 * MM_outdir/B_in_A_id98.tab.trf
 
-### Demo: mimeo-filter
+## Demo: mimeo-filter
 
 Filter sequences comprised of >= 40% short tandem repeats from a multifasta
 library of candidate transposons.
@@ -341,7 +265,3 @@ as a tab-delimited file with the columns:
 ```
 
 File should be sorted by columns 1,3,4
-
-## License
-
-Software provided under MIT license.
