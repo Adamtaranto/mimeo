@@ -1,3 +1,6 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/mimeo.svg)](https://badge.fury.io/py/mimeo)
+
 # Mimeo
 
 ## Table of contents
@@ -17,31 +20,31 @@
 
 Mimeo comprises three tools for parsing repeats from whole-genome alignments:
 
-### mimeo-self  
+### mimeo-self
 
 **Internal repeat finder.** Mimeo-self aligns a genome to itself and extracts high-identity segments above
 a coverage threshold. This method is less sensitive to disruption by indels and repeat-directed point mutations than
 kmer-based methods such as RepeatScout. Reported annotations indicate overlapping segments above the coverage threshold,
 mimeo-self does not attempt to separate nested repeats. Use this tool to identify candidate repeat regions for curated annotation.
 
-### mimeo-x  
+### mimeo-x
 
 **Cross-species repeat finder.** A newly acquired or low-copy transposon may slip past copy-number based annotation tools. Mimeo-x searches for features which are abundant in an external reference genome, allowing for
 annotation of complete elements as they occur in a horizontal-transfer donor species, or of conserved coding segments
 of related transposon families.
 
-### mimeo-map  
+### mimeo-map
 
 **Find all high-identity segments shared between genomes.** Mimeo-map identifies candidate horizontally
-transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned segments correspond to directly homologous sequences and internally repetitive features.  
+transferred segments between sufficiently diverged species. When comparing isolates of a single species, aligned segments correspond to directly homologous sequences and internally repetitive features.
 
 Intra/Inter-genomic alignments from Mimeo-self or Mimeo-x can be reprocessed with Mimeo-map to generate annotations of
-unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for coverage breakpoints corresponding to nested transposons with differing abundances across the genome.  
+unfiltered/uncollapsed alignments. These raw alignment annotations can be used to interrogate repetitive-segments for coverage breakpoints corresponding to nested transposons with differing abundances across the genome.
 
 ### mimeo-filter
 
 An additional tool **mimeo-filter** is now included to allow post-filtering of SSR-rich sequences from FASTA formatted
-candidate-repeat libraries.  
+candidate-repeat libraries.
 
 ## Installing Mimeo
 
@@ -116,7 +119,7 @@ Annotate features in genome A which are > 100bp and occur with >=
 ```bash
 mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 -d MM_outdir --gffout B_in_A_id90.gff3 --outfile B_in_A_id90.tab \
---label B_90 --prefix B_90 --minIdt 90 --minLen 100 
+--label B_90 --prefix B_90 --minIdt 90 --minLen 100
 ```
 
 Output:
@@ -279,7 +282,7 @@ Optional arguments:
   --tPI           TRF indel probability.
   --tminscore     TRF minimum alignment score to report.
   --tmaxperiod    TRF maximum period size to report.
-  --maxtandem     Max percentage of an A-genome alignment which may be masked by TRF. 
+  --maxtandem     Max percentage of an A-genome alignment which may be masked by TRF.
                   If exceeded, the alignment will be discarded.
   --writeTRF      If set write TRF filtered alignment file for use with
                   other mimeo modules.
