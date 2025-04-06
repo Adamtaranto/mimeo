@@ -3,6 +3,8 @@
 
 # Mimeo
 
+**A tool for finding and annotating repeats in whole-genome alignments.**
+
 ## Table of contents
 
 * [Modules](#modules)
@@ -83,7 +85,7 @@ Annotate features in genome A which are > 100bp and occur with >=
 on the same scaffold.
 
 ```bash
-mimeo-self --adir data/A_genome_Split --afasta data/A_genome.fasta \
+mimeo self --adir data/A_genome_Split --afasta data/A_genome.fasta \
 -d MS_outdir --gffout A_genome_Inter3_Intra4_id80_len_100.gff3 \
 --outfile A_genome_Self_Align.tab --label A_Rep3 --prefix A_Self --minIdt 80 \
 --minLen 100 --minCov 3 --intraCov 4 --strictSelf
@@ -101,7 +103,7 @@ Annotate features in genome A which are > 100bp and occur with >=
 80% identity at least 5 times in genome B.
 
 ```bash
-mimeo-x --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
+mimeo x --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 -d MX_outdir --gffout B_Rep5_in_A.gff3 --outfile B_Reps_in_A_id80_len100.tab \
 --label B_Rep5 --prefix B_Rep5 --minIdt 80 --minLen 100 --minCov 5
 ```
@@ -117,7 +119,7 @@ Annotate features in genome A which are > 100bp and occur with >=
 90% identity in genome B. No coverage filter, all alignments are reported.
 
 ```bash
-mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
+mimeo map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 -d MM_outdir --gffout B_in_A_id90.gff3 --outfile B_in_A_id90.tab \
 --label B_90 --prefix B_90 --minIdt 90 --minLen 100
 ```
@@ -136,7 +138,7 @@ Filter out hits which are >= 40% tandem repeats. Write filtered hits
 as tab file and GFF3 annotation.
 
 ```bash
-mimeo-map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
+mimeo map --afasta data/A_genome.fasta --bfasta data/B_genome.fasta \
 -d MM_outdir --gffout B_in_A_id98_maxSSR40.gff3 --outfile B_in_A_id98.tab \
 --label B_98 --prefix B_98 --minIdt 98 --minLen 100 \
 --recycle --maxtandem 40 --writeTRF
@@ -153,7 +155,7 @@ Filter sequences comprised of >= 40% short tandem repeats from a multifasta
 library of candidate transposons.
 
 ```bash
-mimeo-filter --infile data/candidate_TEs.fa
+mimeo filter --infile data/candidate_TEs.fa
 ```
 
 Output:
@@ -165,7 +167,7 @@ Output:
 ### mimeo-self
 
 ```code
-Usage: mimeo-self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
+Usage: mimeo self [-h] [--adir ADIR] [--afasta AFASTA] [-r] [-d OUTDIR]
                   [--gffout GFFOUT] [--outfile OUTFILE] [--verbose]
                   [--label LABEL] [--prefix PREFIX] [--lzpath LZPATH]
                   [--bedtools BEDTOOLS] [--minIdt MINIDT] [--minLen MINLEN]
@@ -208,7 +210,7 @@ Optional arguments:
 ### mimeo-x
 
 ```code
-Usage: mimeo-x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
+Usage: mimeo x [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                [--outfile OUTFILE] [--verbose] [--label LABEL]
                [--prefix PREFIX] [--lzpath LZPATH] [--bedtools BEDTOOLS]
@@ -243,7 +245,7 @@ Optional arguments:
 ### mimeo-map
 
 ```code
-Usage: mimeo-map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
+Usage: mimeo map [-h] [--adir ADIR] [--bdir BDIR] [--afasta AFASTA]
                  [--bfasta BFASTA] [-r] [-d OUTDIR] [--gffout GFFOUT]
                  [--outfile OUTFILE] [--verbose] [--label LABEL]
                  [--prefix PREFIX] [--keeptemp] [--lzpath LZPATH]
@@ -291,7 +293,7 @@ Optional arguments:
 ### mimeo-filter
 
 ```code
-Usage: mimeo-filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
+Usage: mimeo filter [-h] --infile INFILE [-d OUTDIR] [--outfile OUTFILE]
                     [--keeptemp] [--verbose] [--TRFpath TRFPATH]
                     [--tmatch TMATCH] [--tmismatch TMISMATCH]
                     [--tdelta TDELTA] [--tPM TPM] [--tPI TPI]

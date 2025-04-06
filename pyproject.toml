@@ -29,10 +29,7 @@ documentation = "https://github.com/adamtaranto/mimeo"
 repository = "https://github.com/adamtaranto/mimeo"
 
 [project.scripts]
-mimeo-x="mimeo.run_interspecies:main"
-mimeo-self="mimeo.run_self:main"
-mimeo-map="mimeo.run_map:main"
-mimeo-filter="mimeo.run_filter:main"
+mimeo="mimeo.app:main"
 
 [tool.hatch.build]
 source = "src"
