@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 from typing import List, Optional, Tuple, Union
+import logging
 
 from Bio import SeqIO
 
@@ -95,12 +96,12 @@ def get_all_pairs(
                 pairs.append((A, B))
     elif Adir:
         # Self-alignment: pair each file from A with each file from A
-        print('Compose self-genome alignment pairs.')
+        logging.info('Compose self-genome alignment pairs.')
         for A in glob.glob(os.path.join(Adir, '*')):
             for B in glob.glob(os.path.join(Adir, '*')):
                 pairs.append((A, B))
     else:
-        print('Need at least one seq directory to compose alignment pairs.')
+        logging.error('Need at least one seq directory to compose alignment pairs.')
         sys.exit(1)
     return pairs
 
@@ -171,8 +172,7 @@ def syscall(
         If the command execution exceeds the specified timeout.
     """
     # Display the command if in verbose mode
-    if verbose:
-        print('Running command:', cmd, flush=True)
+    logging.debug(f'Running command: {cmd}')
 
     try:
         # Execute the command and capture output (including stderr)
@@ -187,8 +187,7 @@ def syscall(
         decoded_output = output.decode(encoding)
 
         # Display command output if in verbose mode
-        if verbose:
-            print(decoded_output, flush=True)
+        logging.debug(f'{decoded_output}')
 
         return decoded_output
 
@@ -301,7 +300,7 @@ def splitFasta(infile: str, outdir: str, unique: bool = True) -> None:
     seen = []
     for rec in SeqIO.parse(infile, 'fasta'):
         if str(rec.id) in seen and unique:
-            print('Non-unique name in genome: %s. Quitting.' % str(rec.id))
+            logging.error('Non-unique name in genome: %s. Quitting.' % str(rec.id))
             sys.exit(1)
         else:
             seen.append(str(rec.id))
@@ -331,7 +330,7 @@ def isfile(path: str) -> str:
     """
     path = os.path.abspath(path)
     if not os.path.isfile(path):
-        print('Input file not found: %s' % path)
+        logging.error('Input file not found: %s' % path)
         sys.exit(1)
     else:
         return path
@@ -411,10 +410,10 @@ def set_paths(
     if adir:
         adir = os.path.abspath(adir)
         if not os.path.isdir(adir):
-            print('Creating Adir: %s' % adir)
+            logging.info('Creating Adir: %s' % adir)
             os.makedirs(adir)
             if not afasta:
-                print('No A-genome fasta file provided. Quitting.')
+                logging.error('No A-genome fasta file provided. Quitting.')
                 sys.exit(1)
     else:
         # Create A genome directory in temp location
@@ -425,10 +424,10 @@ def set_paths(
     if bdir:
         bdir = os.path.abspath(bdir)
         if not os.path.isdir(bdir):
-            print('Creating Bdir: %s' % bdir)
+            logging.info('Creating Bdir: %s' % bdir)
             os.makedirs(bdir)
             if not bfasta:
-                print('No B-genome fasta file provided. Quitting.')
+                logging.error('No B-genome fasta file provided. Quitting.')
                 sys.exit(1)
     elif not suppresBdir:
         # Create B genome directory in temp location
@@ -440,19 +439,19 @@ def set_paths(
         if os.path.isfile(afasta):
             splitFasta(afasta, adir)
         else:
-            print('A-genome fasta not found at path: %s' % afasta)
+            logging.error('A-genome fasta not found at path: %s' % afasta)
 
     if bfasta:
         if os.path.isfile(bfasta):
             splitFasta(bfasta, bdir)
         elif not suppresBdir:
-            print('B-genome fasta not found at path: %s' % bfasta)
+            logging.error('B-genome fasta not found at path: %s' % bfasta)
 
     # Set up output directory
     if outdir:
         outdir = os.path.abspath(outdir)
         if not os.path.isdir(outdir):
-            print('Create output directory: %s' % outdir)
+            logging.info('Create output directory: %s' % outdir)
             os.makedirs(outdir)
     else:
         outdir = os.getcwd()
@@ -461,7 +460,7 @@ def set_paths(
     if outtab:
         outtab = os.path.join(outdir, outtab)
         if os.path.isfile(outtab):
-            print('Previous alignment found: %s' % outtab)
+            logging.info('Previous alignment found: %s' % outtab)
 
     if gffout:
         gffout = os.path.join(outdir, gffout)
@@ -494,8 +493,7 @@ def checkUniqueID(records: List) -> None:
     IDcounts = Counter(seqIDs)
     duplicates = [k for k, v in IDcounts.items() if v > 1]
     if duplicates:
-        print('Input sequence IDs not unique. Quiting.')
-        print(duplicates)
+        logging.error(f'Input sequence IDs not unique:\n{duplicates}\n\nQuitting.')
         sys.exit(1)
     else:
         pass
@@ -534,7 +532,9 @@ def chromlens(
 
     # Check that records were found
     if not records:
-        print('No sequences found in %s \n Cannot calculate seq lengths.' % seqDir)
+        logging.error(
+            'No sequences found in %s \n Cannot calculate seq lengths.' % seqDir
+        )
         sys.exit(1)
 
     # Check that sequence IDs are unique

@@ -159,6 +159,13 @@ def mainArgs() -> argparse.Namespace:
         default=3000,
         help='Set HSP min score threshold for LASTZ.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
@@ -200,7 +207,7 @@ def main() -> None:
         print('You may need to install them to use all features.', file=sys.stderr)
 
     # Initialize logging
-    init_logging(loglevel='DEBUG')
+    init_logging(loglevel=args.loglevel)
     logging.info('Starting cross-species repeat identification...')
     logging.debug('Command line arguments: %s', args)
 

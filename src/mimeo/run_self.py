@@ -155,6 +155,13 @@ def mainArgs() -> argparse.Namespace:
         action='store_true',
         help='If set process same-scaffold alignments separately with option to use higher "--intraCov" threshold. Sometime useful to avoid false repeat calls from staggered alignments over SSRs or short tandem duplication.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
@@ -194,7 +201,10 @@ def main() -> None:
         print('You may need to install them to use all features.', file=sys.stderr)
 
     # Initialize logging
-    init_logging(loglevel='DEBUG')
+    init_logging(loglevel=args.loglevel)
+    logging.info('Starting self-alignment workflow.')
+    # Log the command line arguments
+    logging.debug('Command line arguments: %s', args)
 
     # Set output paths for files and directories
     adir_path, bdir_path, outdir, outtab, gffout, tempdir = set_paths(

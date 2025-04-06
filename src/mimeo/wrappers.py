@@ -590,6 +590,9 @@ def map_LZ_cmds(
     if outfile is None:
         raise ValueError('Output file path is required')
 
+    logging.info(f'Using LASTZ at {lzpath}')
+    logging.info(f'LASTZ format: {lastz_format}')
+
     # Determine platform for sed command compatibility
     system = platform.system().lower()
     if system == 'darwin':  # macOS

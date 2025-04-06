@@ -19,7 +19,7 @@ import logging
 import os
 import shutil
 import sys
-from typing import Dict, List
+from typing import List
 
 from ._version import __version__
 from .logs import init_logging
@@ -176,6 +176,13 @@ def mainArgs() -> argparse.Namespace:
         default=False,
         help='If set write TRF filtered alignment file for use with other mimeo modules.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
@@ -215,7 +222,10 @@ def main() -> None:
         print('You may need to install them to use all features.', file=sys.stderr)
 
     # Initialize logging
-    init_logging(loglevel='DEBUG')
+    init_logging(loglevel=args.loglevel)
+    logging.info('Starting genome mapping workflow.')
+    # Log the command line arguments
+    logging.debug('Command line arguments: %s', args)
 
     # Set output paths for files and directories
     adir_path, bdir_path, outdir, outtab, gffout, tempdir = set_paths(
@@ -228,12 +238,25 @@ def main() -> None:
         gffout=args.gffout,
         runtrf=args.maxtandem,
     )
+    # Log the paths
+    logging.info(f'Output directory: {outdir}')
+    logging.info(f'Output alignment file: {outtab}')
+    logging.info(f'Output GFF file: {gffout}')
+    logging.info(f'Temporary directory: {tempdir}')
 
     # Get all possible alignment pairs between genomes A and B
+
     pairs = get_all_pairs(Adir=adir_path, Bdir=bdir_path)
+    # Log count of pairs
+    logging.info('Number of pairs to align: %d', len(pairs))
 
     # Get chromosome lengths for GFF header
-    chrLens: Dict[str, int] = chromlens(seqDir=adir_path)
+    logging.info('Calculating chromosome lengths...')
+    chrLens = chromlens(seqDir=adir_path)
+
+    # Log chromosome lengths from chrLens dictionary as for key, value pairs
+    chrLens_lines = [f'{chr}: {len}' for chr, len in chrLens]
+    logging.info('Chromosome lengths:\n' + '\n'.join(chrLens_lines))
 
     # Generate new alignments if needed (not in recycle mode or output doesn't exist)
     if not args.recycle or not os.path.isfile(outtab):
@@ -245,6 +268,7 @@ def main() -> None:
             sys.exit(1)
 
         # Compose alignment commands using LASTZ
+        logging.info('Generating alignment commands...')
         cmds: List[str] = map_LZ_cmds(
             lzpath=args.lzpath,
             pairs=pairs,
@@ -256,15 +280,18 @@ def main() -> None:
         )
 
         # Run alignment commands
+        logging.info('Running alignments...')
         run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
 
     # Import alignment results as dataframe
+    logging.info(f'Importing alignments from {outtab}')
     alignments = import_Align(
         infile=outtab, prefix=args.prefix, minLen=args.minLen, minIdt=args.minIdt
     )
 
     # Optional: Filter alignments based on tandem repeat content
     if args.maxtandem:
+        logging.info('Filtering alignments by tandem repeat content...')
         alignments = trfFilter(
             alignDF=alignments,
             tempdir=tempdir,
@@ -283,16 +310,19 @@ def main() -> None:
 
         # Write TRF-filtered alignments if requested
         if args.writeTRF:
+            logging.info(f'Writing TRF-filtered alignments to file: {outtab + ".trf"}')
             writetrf(alignDF=alignments, outtab=outtab)
 
     # Write results to GFF3 format if output file specified
     if gffout:
+        logging.info(f'Writing GFF3 output to {gffout}')
         with open(gffout, 'w') as f:
             for x in writeGFFlines(alnDF=alignments, chrlens=chrLens, ftype=args.label):
                 f.write(x)
 
     # Clean up temporary files unless keeptemp flag is set
     if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
+        logging.info(f'Removing temporary files in {tempdir}')
         shutil.rmtree(tempdir)
 
     logging.info('Finished!')
