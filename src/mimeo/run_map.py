@@ -1,15 +1,60 @@
+"""
+Genome alignment and high-identity segment detection.
+
+This module provides command-line functionality for identifying high-identity
+segments shared between two genomes using LASTZ alignments. It supports filtering
+alignments based on identity percentage, length, and tandem repeat content.
+
+The tool can:
+1. Align genome sequences from directories or multiFASTA files
+2. Filter alignments by identity percentage and length
+3. Filter out regions with excessive tandem repeats using TRF
+4. Output results in both tabular and GFF3 formats
+
+This is part of the mimeo package for horizontal gene transfer analysis.
+"""
+
 import argparse
+import logging
 import os
 import shutil
 import sys
+from typing import List
 
-import mimeo
+from ._version import __version__
+from .logs import init_logging
+from .utils import (
+    chromlens,
+    get_all_pairs,
+    missing_tool,
+    run_cmd,
+    set_paths,
+)
+from .wrappers import import_Align, map_LZ_cmds, trfFilter, writeGFFlines, writetrf
 
 
-def mainArgs():
+def mainArgs() -> argparse.Namespace:
+    """
+    Parse command-line arguments for the mimeo-map tool.
+
+    Sets up the argument parser with options for input files/directories,
+    output formats, alignment parameters, and tandem repeat filtering.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description='Find all high-identity segments shared between genomes.',
         prog='mimeo-map',
+    )
+    # Add version information
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {__version__}',
+        help='Show program version and exit.',
     )
     # Input options
     parser.add_argument(
@@ -131,26 +176,59 @@ def mainArgs():
         default=False,
         help='If set write TRF filtered alignment file for use with other mimeo modules.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
 
-def main():
+def main() -> None:
+    """
+    Execute the main genome mapping workflow.
+
+    This function:
+    1. Validates required external tools
+    2. Sets up output paths
+    3. Identifies genome sequence pairs to align
+    4. Runs LASTZ alignments (or reuses existing alignments)
+    5. Filters alignments by identity and length
+    6. Optionally filters out regions with excessive tandem repeats
+    7. Outputs results in tabular and GFF3 formats
+
+    Returns
+    -------
+    None
+        This function does not return a value but performs file I/O and logging.
+    """
     # Get cmd line args
     args = mainArgs()
-    # Check for required programs.
-    tools = [args.lzpath, args.TRFpath]
-    missing_tools = []
+
+    # Check for required programs
+    tools: List[str] = [args.lzpath, args.TRFpath]
+    missing_tools: List[str] = []
     for tool in tools:
-        missing_tools += mimeo.missing_tool(tool)
+        missing_tools += missing_tool(tool)
     if missing_tools:
         print(
             'WARNING: Some tools required by mimeo could not be found: '
-            + ', '.join(missing_tools)
+            + ', '.join(missing_tools),
+            file=sys.stderr,
         )
-        print('You may need to install them to use all features.')
-    # Set output paths
-    adir_path, bdir_path, outdir, outtab, gffout, tempdir = mimeo.set_paths(
+        print('You may need to install them to use all features.', file=sys.stderr)
+
+    # Initialize logging
+    init_logging(loglevel=args.loglevel)
+    logging.info('Starting genome mapping workflow.')
+    # Log the command line arguments
+    logging.debug('Command line arguments: %s', args)
+
+    # Set output paths for files and directories
+    adir_path, bdir_path, outdir, outtab, gffout, tempdir = set_paths(
         adir=args.adir,
         bdir=args.bdir,
         afasta=args.afasta,
@@ -160,20 +238,38 @@ def main():
         gffout=args.gffout,
         runtrf=args.maxtandem,
     )
-    # Get all B to A alignment pairs
-    pairs = mimeo.get_all_pairs(Adir=adir_path, Bdir=bdir_path)
-    # Get chrm lens for GFF header
-    chrLens = mimeo.chromlens(seqDir=adir_path)
-    # Do not realign if outtab exists AND recycle mode is set
+    # Log the paths
+    logging.info(f'Output directory: {outdir}')
+    logging.info(f'Output alignment file: {outtab}')
+    logging.info(f'Output GFF file: {gffout}')
+    logging.info(f'Temporary directory: {tempdir}')
+
+    # Get all possible alignment pairs between genomes A and B
+
+    pairs = get_all_pairs(Adir=adir_path, Bdir=bdir_path)
+    # Log count of pairs
+    logging.info('Number of pairs to align: %d', len(pairs))
+
+    # Get chromosome lengths for GFF header
+    logging.info('Calculating chromosome lengths...')
+    chrLens = chromlens(seqDir=adir_path)
+
+    # Log chromosome lengths from chrLens dictionary as for key, value pairs
+    chrLens_lines = [f'{chr}: {len}' for chr, len in chrLens]
+    logging.info('Chromosome lengths:\n' + '\n'.join(chrLens_lines))
+
+    # Generate new alignments if needed (not in recycle mode or output doesn't exist)
     if not args.recycle or not os.path.isfile(outtab):
         if not pairs:
-            print(
+            logging.error(
                 'No files to align. Check --adir and --bdir contain \
                   at least one fasta each.'
             )
             sys.exit(1)
-        # Compose alignment commands
-        cmds = mimeo.map_LZ_cmds(
+
+        # Compose alignment commands using LASTZ
+        logging.info('Generating alignment commands...')
+        cmds: List[str] = map_LZ_cmds(
             lzpath=args.lzpath,
             pairs=pairs,
             minIdt=args.minIdt,
@@ -182,15 +278,21 @@ def main():
             outfile=outtab,
             verbose=args.verbose,
         )
-        # Run alignments
-        mimeo.run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
-    # Import alignment as df
-    alignments = mimeo.import_Align(
+
+        # Run alignment commands
+        logging.info('Running alignments...')
+        run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
+
+    # Import alignment results as dataframe
+    logging.info(f'Importing alignments from {outtab}')
+    alignments = import_Align(
         infile=outtab, prefix=args.prefix, minLen=args.minLen, minIdt=args.minIdt
     )
-    # Filter alignments if A-genome location >= x% masked by TRF
+
+    # Optional: Filter alignments based on tandem repeat content
     if args.maxtandem:
-        alignments = mimeo.trfFilter(
+        logging.info('Filtering alignments by tandem repeat content...')
+        alignments = trfFilter(
             alignDF=alignments,
             tempdir=tempdir,
             prefix=args.prefix,
@@ -205,15 +307,22 @@ def main():
             tmaxperiod=args.tmaxperiod,
             maxtandem=args.maxtandem,
         )
+
+        # Write TRF-filtered alignments if requested
         if args.writeTRF:
-            mimeo.writetrf(alignDF=alignments, outtab=outtab)
-    # Write to GFF3
+            logging.info(f'Writing TRF-filtered alignments to file: {outtab + ".trf"}')
+            writetrf(alignDF=alignments, outtab=outtab)
+
+    # Write results to GFF3 format if output file specified
     if gffout:
+        logging.info(f'Writing GFF3 output to {gffout}')
         with open(gffout, 'w') as f:
-            for x in mimeo.writeGFFlines(
-                alnDF=alignments, chrlens=chrLens, ftype=args.label
-            ):
+            for x in writeGFFlines(alnDF=alignments, chrlens=chrLens, ftype=args.label):
                 f.write(x)
+
+    # Clean up temporary files unless keeptemp flag is set
     if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
+        logging.info(f'Removing temporary files in {tempdir}')
         shutil.rmtree(tempdir)
-    print('Finished!')
+
+    logging.info('Finished!')

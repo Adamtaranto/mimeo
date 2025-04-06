@@ -1,14 +1,57 @@
+"""
+Internal repeat detection through self-alignment.
+
+This module provides command-line functionality for identifying repetitive regions
+within a single genome by aligning it to itself. It detects high-identity segments
+that exceed specified coverage thresholds, which may represent duplicated regions,
+transposons, or other repetitive elements.
+
+The tool can:
+1. Split multiFASTA files into individual sequence files if needed
+2. Perform self-alignment using LASTZ
+3. Identify regions covered by multiple alignments
+4. Filter based on identity, length, and coverage thresholds
+5. Output results in both tabular and GFF3 formats
+
+This is part of the mimeo package for genome structure analysis.
+"""
+
 import argparse
+import logging
 import os
 import shutil
+import sys
+from typing import List
 
-import mimeo
+from ._version import __version__
+from .logs import init_logging
+from .utils import chromlens, get_all_pairs, missing_tool, run_cmd, set_paths
+from .wrappers import self_LZ_cmds
 
 
-def mainArgs():
+def mainArgs() -> argparse.Namespace:
+    """
+    Parse command-line arguments for the mimeo-self tool.
+
+    Sets up the argument parser with options for input files/directories,
+    output formats, alignment parameters, and filtering thresholds for
+    identifying internal repeats within a genome.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description='Internal repeat finder. Mimeo-self aligns a genome to itself and extracts high-identity segments above an coverage threshold.',
         prog='mimeo-self',
+    )
+    # Add version information
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {__version__}',
+        help='Show program version and exit.',
     )
     # Input options
     parser.add_argument(
@@ -112,40 +155,76 @@ def mainArgs():
         action='store_true',
         help='If set process same-scaffold alignments separately with option to use higher "--intraCov" threshold. Sometime useful to avoid false repeat calls from staggered alignments over SSRs or short tandem duplication.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
 
-def main():
-    # Get cmd line args
+def main() -> None:
+    """
+    Execute the main self-alignment workflow for repeat detection.
+
+    This function:
+    1. Validates required external tools
+    2. Sets up output paths
+    3. Identifies genome sequence files to self-align
+    4. Runs LASTZ alignments (or reuses existing alignments)
+    5. Processes alignments to identify repeat regions
+    6. Filters regions based on coverage thresholds
+    7. Outputs results in tabular and GFF3 formats
+
+    Returns
+    -------
+    None
+        This function does not return any value but performs file I/O and logging.
+    """
+    # Get command line arguments
     args = mainArgs()
-    # Check for required programs.
-    tools = [args.lzpath, args.bedtools]
-    missing_tools = []
+
+    # Check for required external programs
+    tools: List[str] = [args.lzpath, args.bedtools]
+    missing_tools: List[str] = []
     for tool in tools:
-        missing_tools += mimeo.missing_tool(tool)
+        missing_tools += missing_tool(tool)
     if missing_tools:
         print(
             'WARNING: Some tools required by mimeo could not be found: '
-            + ', '.join(missing_tools)
+            + ', '.join(missing_tools),
+            file=sys.stderr,
         )
-        print('You may need to install them to use all features.')
-    # Set output paths
-    adir_path, bdir_path, outdir, outtab, gffout, tempdir = mimeo.set_paths(
+        print('You may need to install them to use all features.', file=sys.stderr)
+
+    # Initialize logging
+    init_logging(loglevel=args.loglevel)
+    logging.info('Starting self-alignment workflow.')
+    # Log the command line arguments
+    logging.debug('Command line arguments: %s', args)
+
+    # Set output paths for files and directories
+    adir_path, bdir_path, outdir, outtab, gffout, tempdir = set_paths(
         adir=args.adir,
         afasta=args.afasta,
         outdir=args.outdir,
         outtab=args.outfile,
         gffout=args.gffout,
-        suppresBdir=True,
+        suppresBdir=True,  # No B directory needed for self-alignment
     )
-    # Get file names to align
-    pairs = mimeo.get_all_pairs(Adir=adir_path, Bdir=bdir_path)
-    # Get A-genome chromosome lengths for coverage calcs
+
+    # Get file names to align (self-alignment uses the same files)
+    pairs = get_all_pairs(Adir=adir_path, Bdir=bdir_path)
+
+    # Get chromosome lengths for coverage calculations and GFF header
     lenPathA = os.path.join(outdir, 'A_gen_lens.txt')
-    chrLensA = mimeo.chromlens(seqDir=adir_path, outfile=lenPathA)
-    # Compose alignment commands
-    cmds = mimeo.self_LZ_cmds(
+    _chrLensA = chromlens(seqDir=adir_path, outfile=lenPathA)
+
+    # Generate commands for self-alignment and repeat identification
+    cmds: List[str] = self_LZ_cmds(
         lzpath=args.lzpath,
         bdtlsPath=args.bedtools,
         pairs=pairs,
@@ -164,9 +243,13 @@ def main():
         label=args.label,
         prefix=args.prefix,
     )
-    # Run alignments
-    print('Running alignments...')
-    mimeo.run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
+
+    # Execute the commands for alignment and processing
+    logging.info('Running alignments...')
+    run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
+
+    # Clean up temporary files unless keeptemp flag is set
     if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
         shutil.rmtree(tempdir)
-    print('Finished!')
+
+    logging.info('Finished!')

@@ -7,7 +7,7 @@ echo "Screen genome A for features which are high copy in self alignment." >&2
 #./Self_genome_align_repeat_finder -z /usr/local/bin/lastz -g genome_split -i 70 -p HighCopy_genomeA_id70_cv4 -l 100 -d outdir -C 4 -L chromlens.txt -s -r
 
 # Reset OPT index to 1
-OPTIND=1         
+OPTIND=1
 
 # Initialize our own variables:
 minIdt="80"
@@ -55,10 +55,10 @@ while getopts "d:p:g:i:l:z:C:L:c:rs" opt; do #Options followed by ":" expect an 
 			exit 1
 		fi
 		;;
-	s)	skipSelf=1 
+	s)	skipSelf=1
 		echo "Ignoring any sequence pairs with same name." >&2
 		;;
-	r)	recycleTAB=1 
+	r)	recycleTAB=1
 		echo "Use existing alignment data if found." >&2
 		;;
 	C)	coverage=$OPTARG
@@ -218,7 +218,7 @@ if ([ $skipSelf == 0 ] && [ $recycleINTRA == 0 ]) || [ $recycleINTER == 0 ]; the
 			## New fields = name1,strand1,start1,end1,name2,strand2,start2+,end2+,score,identity
 			## Sort filtered bed file by chrom, start, stop
 			echo "Alignment finished, writing hits: $out_tab_" >&2
-			awk '!/^#/ { print; }' $outfile | awk -v minLen="$minLen" '0+$5 >= minLen {print ;}' | awk -v OFS='\t' -v minIdt="$minIdt" '0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >> $out_tab_inter 
+			awk '!/^#/ { print; }' $outfile | awk -v minLen="$minLen" '0+$5 >= minLen {print ;}' | awk -v OFS='\t' -v minIdt="$minIdt" '0+$13 >= minIdt {print $1,$2,$3,$4,$6,$7,$8,$9,$11,$13;}' | sed 's/ //g' | sort -k 1,1 -k 3n,4n >> $out_tab_inter
 			## Create GFF3 file for merged filtered hits
 			echo "Writing filtered hits to gff3: $out_gff_raw" >&2
 			awk '!/^#/ {print ;}' $out_tab_inter | awk -v OFS='\t' -v q_name="$q_name" 'BEGIN{i=0}{i++;}{j=sprintf("%09d",i)}{print $1,"LASTZ","Raw_Alignment_Inter",$3,$4,$9,$2,".","ID=LZ_hit_"q_name"_"j";Idt="$10";Target="$5"_"$6"_"$7"_"$8 ;}' >> $out_gff_raw

@@ -1,14 +1,63 @@
+"""
+Cross-species repeat identification through comparative genomics.
+
+This module provides command-line functionality for identifying repetitive elements
+that are abundant in an external reference genome (B) and present in the target
+genome (A). It detects segments where regions from genome B align multiple times
+to genome A, indicating potentially mobile or repetitive elements.
+
+The tool can:
+1. Split multiFASTA files into individual sequence files if needed
+2. Perform cross-species alignments using LASTZ
+3. Identify regions in genome A covered by multiple genome B segments
+4. Filter results based on identity, length, and coverage thresholds
+5. Output results in both tabular and GFF3 formats
+
+This is part of the mimeo package for comparative genomics analysis.
+"""
+
 import argparse
+import logging
 import os
 import shutil
+import sys
+from typing import Dict, List
 
-import mimeo
+from ._version import __version__
+from .logs import init_logging
+from .utils import (
+    chromlens,
+    get_all_pairs,
+    missing_tool,
+    run_cmd,
+    set_paths,
+)
+from .wrappers import xspecies_LZ_cmds
 
 
-def mainArgs():
+def mainArgs() -> argparse.Namespace:
+    """
+    Parse command-line arguments for the mimeo-x tool.
+
+    Sets up the argument parser with options for input files/directories,
+    output formats, alignment parameters, and thresholds for identifying
+    regions in genome A that are covered by multiple segments from genome B.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description='Cross-species repeat finder. Mimeo-x searches for features which are abundant in an external reference genome.',
         prog='mimeo-x',
+    )
+    # Add version information
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {__version__}',
+        help='Show program version and exit.',
     )
     # Input options
     parser.add_argument(
@@ -110,26 +159,60 @@ def mainArgs():
         default=3000,
         help='Set HSP min score threshold for LASTZ.',
     )
+    parser.add_argument(
+        '--loglevel',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.',
+    )
     args = parser.parse_args()
     return args
 
 
-def main():
-    # Get cmd line args
+def main() -> None:
+    """
+    Execute the main cross-species repeat identification workflow.
+
+    This function:
+    1. Validates required external tools
+    2. Sets up output paths
+    3. Identifies sequence files to align between genomes A and B
+    4. Calculates chromosome lengths for coverage calculations
+    5. Runs LASTZ alignments (or reuses existing alignments)
+    6. Processes alignments to identify regions in genome A covered by multiple
+       genome B segments, which may represent repetitive elements
+    7. Outputs results in tabular and GFF3 formats
+
+    Returns
+    -------
+    None
+        This function does not return a value. It performs file I/O and logging
+        to report progress and results.
+    """
+    # Get command line arguments
     args = mainArgs()
-    # Check for required programs.
-    tools = [args.lzpath, args.bedtools]
-    missing_tools = []
+
+    # Check for required external programs
+    tools: List[str] = [args.lzpath, args.bedtools]
+    missing_tools: List[str] = []
     for tool in tools:
-        missing_tools += mimeo.missing_tool(tool)
+        missing_tools += missing_tool(tool)
     if missing_tools:
         print(
             'WARNING: Some tools required by mimeo could not be found: '
-            + ', '.join(missing_tools)
+            + ', '.join(missing_tools),
+            file=sys.stderr,
         )
-        print('You may need to install them to use all features.')
-    # Set output paths
-    adir_path, bdir_path, outdir, outtab, gffout, tempdir = mimeo.set_paths(
+        print('You may need to install them to use all features.', file=sys.stderr)
+
+    # Initialize logging
+    init_logging(loglevel=args.loglevel)
+    logging.info('Starting cross-species repeat identification...')
+    logging.debug('Command line arguments: %s', args)
+
+    # Set output paths for files and directories
+    adir_path, bdir_path, outdir, outtab, gffout, tempdir = set_paths(
         adir=args.adir,
         bdir=args.bdir,
         afasta=args.afasta,
@@ -138,14 +221,16 @@ def main():
         outtab=args.outfile,
         gffout=args.gffout,
     )
-    # Get file names to align
-    pairs = mimeo.get_all_pairs(Adir=adir_path, Bdir=bdir_path)
-    # Get A-genome chromosome lengths for coverage calcs
-    lenPathA = os.path.join(outdir, 'A_gen_lens.txt')
-    # Make chrm length file for bedtool coverage calc
-    chrLensA = mimeo.chromlens(seqDir=adir_path, outfile=lenPathA)
-    # Compose alignment commands
-    cmds = mimeo.xspecies_LZ_cmds(
+
+    # Get all possible alignment pairs between genomes A and B
+    pairs: List[tuple] = get_all_pairs(Adir=adir_path, Bdir=bdir_path)
+
+    # Generate chromosome length file for genome A (needed for coverage calculations)
+    lenPathA: str = os.path.join(outdir, 'A_gen_lens.txt')
+    _chrLensA: Dict[str, int] = chromlens(seqDir=adir_path, outfile=lenPathA)
+
+    # Compose commands for alignment and repeat identification
+    cmds: List[str] = xspecies_LZ_cmds(
         lzpath=args.lzpath,
         bdtlsPath=args.bedtools,
         pairs=pairs,
@@ -161,9 +246,13 @@ def main():
         label=args.label,
         prefix=args.prefix,
     )
-    # Run alignments
-    print('Running alignments...')
-    mimeo.run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
+
+    # Run the alignment and processing commands
+    logging.info('Running alignments...')
+    run_cmd(cmds, verbose=args.verbose, keeptemp=args.keeptemp)
+
+    # Clean up temporary files unless keeptemp flag is set
     if tempdir and os.path.isdir(tempdir) and not args.keeptemp:
         shutil.rmtree(tempdir)
-    print('Finished!')
+
+    logging.info('Finished!')
