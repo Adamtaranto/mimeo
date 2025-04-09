@@ -18,10 +18,13 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
-dependencies = ["biopython>=1.70", "pandas>=0.20.3",]
-
+dependencies = ["biopython>=1.70", "pandas>=0.20.3", "rich"]
 
 dynamic = ["version"]
+
+# Optional dependencies for testing
+[project.optional-dependencies]
+dev = ["hatch", "isort", "ipykernel", "mkdocs-jupyter","mkdocs-material", "mkdocs", "mkdocstrings-python", "mkdocstrings", "notebook", "numpydoc-validation", "pre-commit", "pymdown-extensions", "pytest-cov", "pytest", "ruff"]
 
 [project.urls]
 homepage = "https://github.com/adamtaranto/mimeo"
@@ -47,10 +50,6 @@ fallback-version = "0.0.0"
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mimeo/_version.py"
-
-# Optional dependencies for testing
-[project.optional-dependencies]
-dev = ["hatch", "isort", "ipykernel", "mkdocs-jupyter","mkdocs-material", "mkdocs", "mkdocstrings-python", "mkdocstrings", "notebook", "numpydoc-validation", "pre-commit", "pymdown-extensions", "pytest-cov", "pytest", "ruff"]
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=mimeo --cov-branch --cov-report=xml --cov-report=term"
