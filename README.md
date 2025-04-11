@@ -1,5 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/mimeo.svg)](https://badge.fury.io/py/mimeo)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mimeo/README.html)
+[![Downloads](https://pepy.tech/badge/mimeo)](https://pepy.tech/project/mimeo)
 
 # Mimeo
 
